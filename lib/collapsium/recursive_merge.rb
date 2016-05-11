@@ -9,7 +9,7 @@
 
 module Collapsium
   ##
-  # Provides recursive merge functions for hashes. Used in PathedHash.
+  # Provides recursive merge functions for hashes.
   module RecursiveMerge
     ##
     # Recursively merge `:other` into this Hash.
