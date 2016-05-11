@@ -7,51 +7,20 @@
 # All rights reserved.
 #
 
-require 'collapsium/recursive_merge'
-
 module Collapsium
 
   ##
-  # The PathedHash class wraps Hash by offering pathed access on top of
-  # regular access, i.e. instead of `h["first"]["second"]` you can write
-  # `h["first.second"]`.
+  # The PathedAccess module can be used to extend Hash with pathed access
+  # on top of regular access, i.e. instead of `h["first"]["second"]` you can
+  # write `h["first.second"]`.
   #
   # The main benefit is much simpler code for accessing nested structured.
-  # For any given path, PathedHash will return nil from `[]` if *any* of
+  # For any given path, PathedAccess will return nil from `[]` if *any* of
   # the path components do not exist.
   #
   # Similarly, intermediate nodes will be created when you write a value
   # for a path.
-  #
-  # PathedHash also includes RecursiveMerge.
-  class PathedHash
-    include RecursiveMerge
-
-    DEFAULT_PROC = proc do |hash, key|
-      case key
-      when String
-        sym = key.to_sym
-        hash[sym] if hash.key?(sym)
-      when Symbol
-        str = key.to_s
-        hash[str] if hash.key?(str)
-      end
-    end.freeze
-
-    ##
-    # Initializer. Accepts `nil`, hashes or pathed hashes.
-    #
-    # @param init [NilClass, Hash] initial values.
-    def initialize(init = nil)
-      if init.nil?
-        @data = {}
-      else
-        @data = init.dup
-      end
-      @separator = '.'
-
-      @data.default_proc = DEFAULT_PROC
-    end
+  module PathedAccess
 
     # @return [String] the separator is the character or pattern splitting paths.
     attr_accessor :separator
@@ -68,9 +37,14 @@ module Collapsium
       :[]=, :store,
     ].freeze
 
+    # @api private
+    # Default path separator
+    DEFAULT_SEPARATOR = '.'.freeze
+
     ##
     # @return [RegExp] the pattern to split paths at; based on `separator`
     def split_pattern
+      @separator ||= DEFAULT_SEPARATOR
       /(?<!\\)#{Regexp.escape(@separator)}/
     end
 
@@ -80,7 +54,7 @@ module Collapsium
         # If there are no arguments, there's nothing to do with paths. Just
         # delegate to the hash.
         if args.empty?
-          return @data.send(method, *args, &block)
+          return super(*args, &block)
         end
 
         # With any of the dispatch methods, we know that the first argument has
@@ -98,7 +72,7 @@ module Collapsium
           return self
         end
 
-        # This PathedHash is already the leaf-most Hash
+        # This is already the leaf-most Hash
         if components.length == 1
           # Weird edge case: if we didn't have to shift anything, then it's
           # possible we inadvertently changed a symbol key into a string key,
@@ -109,7 +83,7 @@ module Collapsium
           if copy[0] != components[0].to_sym
             copy[0] = components[0]
           end
-          return @data.send(method, *copy, &block)
+          return super(*copy, &block)
         end
 
         # Deal with other paths. The frustrating part here is that for nested
@@ -117,13 +91,13 @@ module Collapsium
         # path splitting, so we'll have to recurse down to the leaf here.
         #
         # For write methods, we need to create intermediary hashes.
-        leaf = recursive_fetch(components, @data,
+        leaf = recursive_fetch(components, self,
                                create: WRITE_METHODS.include?(method))
         if leaf.is_a? Hash
-          leaf.default_proc = DEFAULT_PROC
+          leaf.default_proc = default_proc
         end
         if leaf.nil?
-          leaf = @data
+          leaf = self
         end
 
         # If we have a leaf, we want to send the requested method to that
@@ -132,42 +106,6 @@ module Collapsium
         copy[0] = components.last
         return leaf.send(method, *copy, &block)
       end
-    end
-
-    # @return [String] string representation
-    def to_s
-      @data.to_s
-    end
-
-    # @return [PathedHash] duplicate, as `.dup` usually works
-    def dup
-      PathedHash.new(@data.dup)
-    end
-
-    # In place merge, as it usually works for hashes.
-    # @return [PathedHash] self
-    def merge!(*args, &block)
-      # FIXME: we may need other methods like this. This is used by
-      #        RecursiveMerge, so we know it's required.
-      PathedHash.new(super)
-    end
-
-    ##
-    # Map any missing method to the Hash implementation
-    def respond_to_missing?(meth, include_private = false)
-      if not @data.nil? and @data.respond_to?(meth, include_private)
-        return true
-      end
-      return super
-    end
-
-    ##
-    # Map any missing method to the Hash implementation
-    def method_missing(meth, *args, &block)
-      if not @data.nil? and @data.respond_to?(meth)
-        return @data.send(meth.to_s, *args, &block)
-      end
-      return super
     end
 
     private
@@ -195,5 +133,5 @@ module Collapsium
       # Ok, recurse.
       return recursive_fetch(tail, data[head], options)
     end
-  end # class PathedHash
+  end # module PathedAccess
 end # module Collapsium
