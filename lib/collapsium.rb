@@ -12,3 +12,5 @@ require 'collapsium/version'
 require 'collapsium/recursive_merge'
 require 'collapsium/indifferent_access'
 require 'collapsium/pathed_access'
+
+require 'collapsium/uber_hash'
