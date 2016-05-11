@@ -23,7 +23,10 @@ module Collapsium
   module PathedAccess
 
     # @return [String] the separator is the character or pattern splitting paths.
-    attr_accessor :separator
+    def separator
+      @separator ||= DEFAULT_SEPARATOR
+      return @separator
+    end
 
     # @api private
     # Methods redefined to support pathed read access.
@@ -44,8 +47,7 @@ module Collapsium
     ##
     # @return [RegExp] the pattern to split paths at; based on `separator`
     def split_pattern
-      @separator ||= DEFAULT_SEPARATOR
-      /(?<!\\)#{Regexp.escape(@separator)}/
+      /(?<!\\)#{Regexp.escape(separator)}/
     end
 
     (READ_METHODS + WRITE_METHODS).each do |method|
