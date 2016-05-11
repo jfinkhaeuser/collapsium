@@ -9,4 +9,6 @@
 
 require 'collapsium/version'
 
-require 'collapsium/pathed_hash'
+require 'collapsium/recursive_merge'
+require 'collapsium/indifferent_access'
+require 'collapsium/pathed_access'
