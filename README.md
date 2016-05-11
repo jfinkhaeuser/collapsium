@@ -17,6 +17,7 @@ that is ActiveSupport...
 
 - The `IndifferentAccess` module provides support for indifferent access via a
   `#default_proc`:
+
   ```ruby
   x = { foo: 42 }
   x.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
@@ -24,6 +25,7 @@ that is ActiveSupport...
   ```
 - The `RecursiveMerge` module provides a `#recursive_merge` function which merges
   Hashes recursively:
+
   ```ruby
   x = { foo: { bar: 42 } }
   x.extend(::Collapsium::RecursiveMerge)
@@ -36,6 +38,7 @@ that is ActiveSupport...
   # }
   ```
 - The `PathedAccess` module provides a pathed access method to nested Hashes:
+
   ```ruby
   x = { "foo" => { "bar" => 42 } }
   x.extend(::Collapsium::PathedAccess)
