@@ -45,6 +45,7 @@ describe ::Collapsium::RecursiveMerge do
         something: 42,
       }
     }
+    @tester[:bar] = [1]
 
     to_merge = {
       foo: {
@@ -54,13 +55,16 @@ describe ::Collapsium::RecursiveMerge do
           another: 123,
         },
       },
+      bar: [2],
     }
 
     x = @tester.recursive_merge(to_merge)
 
     expect(x[:foo][:bar]).to eql 123
-    expect(x[:foo][:baz] - %w(old new)).to be_empty
+    expect(x[:foo][:baz].length).to eql 2
     expect(x[:foo][:quux][:something]).to eql 42
     expect(x[:foo][:quux][:another]).to eql 123
+
+    expect(x[:bar].length).to eql 2
   end
 end
