@@ -11,7 +11,7 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'collapsium/version'
 
-# rubocop:disable Style/UnneededPercentQ, Style/ExtraSpacing
+# rubocop:disable Style/UnneededPercentQ
 # rubocop:disable Style/SpaceAroundOperators
 Gem::Specification.new do |spec|
   spec.name          = "collapsium"
@@ -19,8 +19,10 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Jens Finkhaeuser"]
   spec.email         = ["jens@finkhaeuser.de"]
   spec.description   = %q(
+    Provides IndifferentAccess, RecursiveMerge, PathedAccess, etc.
   )
   spec.summary       = %q(
+    Provides various Hash extensions, and an UberHash class that uses them all.
   )
   spec.homepage      = "https://github.com/jfinkhaeuser/collapsium"
   spec.license       = "MITNFA"
@@ -40,4 +42,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "yard", "~> 0.8"
 end
 # rubocop:enable Style/SpaceAroundOperators
-# rubocop:enable Style/UnneededPercentQ, Style/ExtraSpacing
+# rubocop:enable Style/UnneededPercentQ
