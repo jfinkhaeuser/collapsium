@@ -8,6 +8,7 @@
 #
 
 require 'collapsium/recursive_merge'
+require 'collapsium/recursive_dup'
 require 'collapsium/indifferent_access'
 require 'collapsium/pathed_access'
 
@@ -16,6 +17,7 @@ module Collapsium
   # A Hash that includes all the different Hash extensions in collapsium
   class UberHash < Hash
     include RecursiveMerge
+    include RecursiveDup
     include PathedAccess
 
     def initialize(*args)
