@@ -41,4 +41,21 @@ describe Collapsium::UberHash do
     x = ::Collapsium::UberHash.new
     expect(x.empty?).to be_truthy
   end
+
+  it "has recursive_dup support" do
+    x = ::Collapsium::UberHash.new
+    expect(x.respond_to?(:recursive_dup)).to be_truthy
+    expect(x.respond_to?(:deep_dup)).to be_truthy
+  end
+
+  it "has recursive_sort support" do
+    x = ::Collapsium::UberHash.new
+    expect(x.respond_to?(:recursive_sort)).to be_truthy
+    expect(x.respond_to?(:recursive_sort!)).to be_truthy
+  end
+
+  it "has prototype_match support" do
+    x = ::Collapsium::UberHash.new
+    expect(x.respond_to?(:prototype_match)).to be_truthy
+  end
 end
