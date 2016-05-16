@@ -12,6 +12,7 @@ require 'collapsium/recursive_dup'
 require 'collapsium/recursive_sort'
 require 'collapsium/indifferent_access'
 require 'collapsium/pathed_access'
+require 'collapsium/prototype_match'
 
 module Collapsium
 
@@ -21,6 +22,7 @@ module Collapsium
     include RecursiveDup
     include RecursiveSort
     include PathedAccess
+    include PrototypeMatch
 
     def initialize(*args)
       super
