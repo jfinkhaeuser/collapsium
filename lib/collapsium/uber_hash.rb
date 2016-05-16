@@ -9,6 +9,7 @@
 
 require 'collapsium/recursive_merge'
 require 'collapsium/recursive_dup'
+require 'collapsium/recursive_sort'
 require 'collapsium/indifferent_access'
 require 'collapsium/pathed_access'
 
@@ -18,6 +19,7 @@ module Collapsium
   class UberHash < Hash
     include RecursiveMerge
     include RecursiveDup
+    include RecursiveSort
     include PathedAccess
 
     def initialize(*args)
