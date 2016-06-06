@@ -11,6 +11,9 @@ module Collapsium
   ##
   # Provides prototype matching for Hashes. See #prototype_match
   module PrototypeMatch
+    # Large negative integer for failures we can't express otherwise in scoring.
+    FAILURE = -2147483648
+
     ##
     # Given a prototype Hash, returns true if (recursively):
     # - this hash contains all the prototype's keys, and
@@ -23,22 +26,42 @@ module Collapsium
     #     not present in the prototype.
     # @return (Boolean) True if matching succeeds, false otherwise.
     def prototype_match(prototype, strict = false)
-      # Prototype contains keys not in the Hash,so that's a failure.
-      if not (prototype.keys - keys).empty?
-        return false
+      return prototype_match_score(prototype, strict) > 0
+    end
+
+    ##
+    # Calculates a matching score for matching the prototype. A score of 0 or
+    # less is not a match, and the higher the score, the better the match is.
+    #
+    # @param prototype (Hash) The prototype to match against.
+    # @param strict (Boolean) If true, this Hash may not contain keys that are
+    #     not present in the prototype.
+    # @return (Integer) Greater than zero for positive matches, equal to or
+    #     less than zero for mismatches.
+    def prototype_match_score(prototype, strict = false)
+      # The prototype contains keys that are not in the Hash. That's a failure,
+      # and the level of failure is the number of missing keys.
+      missing = (prototype.keys - keys).length
+      if missing > 0
+        return -missing
       end
 
       # In strict evaluation, the Hash may also not contain keys that are not
       # in the prototoype.
-      if strict and not (keys - prototype.keys).empty?
-        return false
+      if strict
+        missing = (keys - prototype.keys).length
+        if missing > 0
+          return -missing
+        end
       end
 
       # Now we have to examine the prototype's values.
+      score = 0
       prototype.each do |key, value|
         # We can skip any nil values in the prototype. They exist only to ensure
-        # the key is present.
+        # the key is present. We do increase the score for a matched key, though!
         if value.nil?
+          score += 1
           next
         end
 
@@ -46,25 +69,29 @@ module Collapsium
         # and we have to recurse into this Hash.
         if value.is_a?(Hash)
           if not self[key].is_a?(Hash)
-            return false
+            return FAILURE
           end
 
           self[key].extend(PrototypeMatch)
-          if not self[key].prototype_match(value)
-            return false
+          recurse_score = self[key].prototype_match_score(value)
+          if recurse_score < 0
+            return recurse_score
           end
+          score += recurse_score
 
           next
         end
 
         # Otherwise the prototype value must be equal to the Hash's value
-        if self[key] != value
-          return false
+        if self[key] == value
+          score += 1
+        else
+          score -= 1
         end
       end
 
-      # All other cases must be true.
-      return true
+      # Return score
+      return score
     end
   end # module PrototypeMatch
 end # module Collapsium
