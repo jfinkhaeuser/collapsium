@@ -98,9 +98,6 @@ module Collapsium
         if leaf.is_a? Hash
           leaf.default_proc = default_proc
         end
-        if leaf.nil?
-          leaf = self
-        end
 
         # If we have a leaf, we want to send the requested method to that
         # leaf.
@@ -128,7 +125,15 @@ module Collapsium
 
       # If we're a write function, then we need to create intermediary objects,
       # i.e. what's at head if nothing is there.
-      if options[:create] and data[head].nil?
+      if data[head].nil?
+        # If the head is nil, we can't recurse. In create mode that means we
+        # want to create hash children, but in read mode we're done recursing.
+        # By returning a hash here, we allow the caller to send methods on to
+        # this temporary, making a PathedAccess Hash act like any other Hash.
+        if not options[:create]
+          return {}
+        end
+
         data[head] = {}
       end
 

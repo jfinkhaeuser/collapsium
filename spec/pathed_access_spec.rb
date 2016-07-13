@@ -75,6 +75,13 @@ describe ::Collapsium::PathedAccess do
       expect(@tester["bar.baz"]).to eql "quux"
       expect(@tester[".bar.baz"]).to eql "quux"
     end
+
+    it "behaves like a hash if a child node does not exist" do
+      expect(@tester["asdf"]).to be_nil
+      expect(@tester.fetch("asdf", 42)).to eql 42
+      expect(@tester[".does.not.exist"]).to be_nil
+      expect(@tester.fetch(".does.not.exist", 42)).to eql 42
+    end
   end
 
   describe "with indifferent access" do
