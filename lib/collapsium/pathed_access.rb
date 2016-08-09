@@ -7,6 +7,8 @@
 # All rights reserved.
 #
 
+require 'collapsium/support/hash_methods'
+
 module Collapsium
 
   ##
@@ -21,6 +23,8 @@ module Collapsium
   # Similarly, intermediate nodes will be created when you write a value
   # for a path.
   module PathedAccess
+
+    include ::Collapsium::Support::HashMethods
 
     # @return [String] the separator is the character or pattern splitting paths.
     def separator
@@ -38,18 +42,6 @@ module Collapsium
       @path_prefix ||= ''
       return @path_prefix
     end
-
-    # @api private
-    # Methods redefined to support pathed read access.
-    READ_METHODS = [
-      :[], :default, :delete, :fetch, :has_key?, :include?, :key?, :member?,
-    ].freeze
-
-    # @api private
-    # Methods redefined to support pathed write access.
-    WRITE_METHODS = [
-      :[]=, :store,
-    ].freeze
 
     # @api private
     # Default path separator
