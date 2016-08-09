@@ -35,7 +35,11 @@ module Collapsium
         return
       end
 
-      merge!(args[0])
+      recursive_merge!(args[0])
+    end
+
+    def dup
+      return UberHash.new(self)
     end
   end
 

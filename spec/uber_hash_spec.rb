@@ -58,4 +58,20 @@ describe Collapsium::UberHash do
     x = ::Collapsium::UberHash.new
     expect(x.respond_to?(:prototype_match)).to be_truthy
   end
+
+  it "creates an UberHash when duplicated" do
+    x = ::Collapsium::UberHash.new
+    y = x.dup
+    expect(y.is_a?(::Collapsium::UberHash)).to be_truthy
+  end
+
+  it "creates nested UberHashes from a nested Hash input" do
+    data = {
+      some: {
+        nested: true,
+      }
+    }
+    x = ::Collapsium::UberHash.new(data)
+    expect(x[:some].is_a?(::Collapsium::UberHash)).to be_truthy
+  end
 end
