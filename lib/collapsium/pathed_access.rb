@@ -28,6 +28,17 @@ module Collapsium
       return @separator
     end
 
+    ##
+    # Assume any pathed access has this prefix.
+    def path_prefix=(value)
+      @path_prefix = normalize_path(value)
+    end
+
+    def path_prefix
+      @path_prefix ||= ''
+      return @path_prefix
+    end
+
     # @api private
     # Methods redefined to support pathed read access.
     READ_METHODS = [
@@ -56,25 +67,19 @@ module Collapsium
         # If there are no arguments, there's nothing to do with paths. Just
         # delegate to the hash.
         if args.empty?
-          return super(*args, &block)
+          return fixup_hashlike(super(*args, &block))
         end
 
         # With any of the dispatch methods, we know that the first argument has
         # to be a key. We'll try to split it by the path separator.
-        components = args[0].to_s.split(split_pattern)
-        loop do
-          if components.empty? or not components[0].empty?
-            break
-          end
-          components.shift
-        end
+        components = path_components(args[0].to_s)
 
         # If there are no components, return self/the root
         if components.empty?
           return self
         end
 
-        # This is already the leaf-most Hash
+        # This is already the leaf-most entry
         if components.length == 1
           # Weird edge case: if we didn't have to shift anything, then it's
           # possible we inadvertently changed a symbol key into a string key,
@@ -85,7 +90,8 @@ module Collapsium
           if copy[0] != components[0].to_sym
             copy[0] = components[0]
           end
-          return super(*copy, &block)
+
+          return fixup_hashlike(super(*copy, &block), join_path(components))
         end
 
         # Deal with other paths. The frustrating part here is that for nested
@@ -93,34 +99,56 @@ module Collapsium
         # path splitting, so we'll have to recurse down to the leaf here.
         #
         # For write methods, we need to create intermediary hashes.
-        leaf = recursive_fetch(components, self,
+        leaf = recursive_fetch(components, self, [],
                                create: WRITE_METHODS.include?(method))
-        if leaf.is_a? Hash
-          leaf.default_proc = default_proc
-        end
 
         # If we have a leaf, we want to send the requested method to that
         # leaf.
         copy = args.dup
         copy[0] = components.last
-        return leaf.send(method, *copy, &block)
+        return fixup_hashlike(leaf.send(method, *copy, &block),
+                              join_path(components))
       end
+    end
+
+    ##
+    # Break path into components. Expects a String path separated by the
+    # `#separator`, and returns the path split into components (an Array of
+    # String).
+    def path_components(path)
+      components = path.split(split_pattern)
+      components.select! { |c| not c.nil? and not c.empty? }
+      return components
+    end
+
+    ##
+    # Join path components with the `#separator`.
+    def join_path(components)
+      return components.join(separator)
+    end
+
+    ##
+    # Normalizes a String path so that there are no empty components, and it
+    # starts with a separator.
+    def normalize_path(path)
+      return separator + join_path(path_components(path))
     end
 
     private
 
     ##
     # Given the path components, recursively fetch any but the last key.
-    def recursive_fetch(path, data, options = {})
+    def recursive_fetch(path, data, current_path = [], options = {})
       # For the leaf element, we do nothing because that's where we want to
       # dispatch to.
       if path.length == 1
-        return data
+        return fixup_hashlike(data, join_path(current_path))
       end
 
       # Split path into head and tail; for the next iteration, we'll look use only
       # head, and pass tail on recursively.
       head = path[0]
+      current_path << head
       tail = path.slice(1, path.length)
 
       # If we're a write function, then we need to create intermediary objects,
@@ -131,14 +159,50 @@ module Collapsium
         # By returning a hash here, we allow the caller to send methods on to
         # this temporary, making a PathedAccess Hash act like any other Hash.
         if not options[:create]
-          return {}
+          return fixup_hashlike({}, join_path(current_path))
         end
 
-        data[head] = {}
+        data[head] = fixup_hashlike({}, join_path(current_path))
       end
 
       # Ok, recurse.
-      return recursive_fetch(tail, data[head], options)
+      return recursive_fetch(tail, data[head], current_path, options)
+    end
+
+    ##
+    # Make a Hash-like object (if given) appear as much as this Hash-like
+    # object as possible.
+    def fixup_hashlike(value, path_prefix = nil)
+      # If it's not a Hash, return it unaltered.
+      if not value.is_a? Hash
+        return value
+      end
+
+      # If it's a Hash, but not a Hash of this particular class, then make it
+      # a Hash of this class.
+      if value.class != self.class
+        new_value = self.class.new
+        new_value.merge!(value)
+        value = new_value
+      end
+
+      # Extend all modules extended in self.
+      value_mods = (class << value; self end).included_modules
+      own_mods = (class << self; self end).included_modules
+      (own_mods - value_mods).each do |mod|
+        value.extend(mod)
+      end
+
+      # Set the default proc to our own value.
+      value.default_proc = default_proc
+
+      # Finally, if it responds to a path_prefix variable, set the path
+      # prefix.
+      if not path_prefix.nil? and value.respond_to?(:path_prefix)
+        value.path_prefix = path_prefix
+      end
+
+      return value
     end
   end # module PathedAccess
 end # module Collapsium

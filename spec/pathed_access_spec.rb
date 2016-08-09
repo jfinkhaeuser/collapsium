@@ -7,6 +7,36 @@ describe ::Collapsium::PathedAccess do
     @tester.extend(::Collapsium::PathedAccess)
   end
 
+  describe "Path components" do
+    it "splits a path into components" do
+      expect(@tester.path_components("foo.bar")).to eql %w(foo bar)
+    end
+
+    it "strips empty components at the beginning" do
+      expect(@tester.path_components("..foo.bar")).to eql %w(foo bar)
+    end
+
+    it "strips empty components at the end" do
+      expect(@tester.path_components("foo.bar..")).to eql %w(foo bar)
+    end
+
+    it "strips empty components in the middle" do
+      expect(@tester.path_components("foo...bar")).to eql %w(foo bar)
+    end
+
+    it "joins path components" do
+      expect(@tester.join_path(%w(foo bar))).to eql "foo.bar"
+    end
+
+    it "joins empty components to an empty string" do
+      expect(@tester.join_path([])).to eql ""
+    end
+
+    it "normalizes a path" do
+      expect(@tester.normalize_path("foo..bar..baz.")).to eql ".foo.bar.baz"
+    end
+  end
+
   describe "Hash-like" do
     it "responds to Hash functions" do
       [:invert, :delete, :fetch].each do |meth|
@@ -27,6 +57,26 @@ describe ::Collapsium::PathedAccess do
   end
 
   describe "pathed access" do
+    context ":path_prefix" do
+      it "can be read" do
+        expect { @tester.path_prefix }.not_to raise_error
+      end
+
+      it "defaults to empty String" do
+        expect(@tester.path_prefix).to be_empty
+        expect(@tester.path_prefix.class).to eql String
+      end
+
+      it "can be set" do
+        expect { @tester.path_prefix = "foo.bar" }.not_to raise_error
+      end
+
+      it "normalizes when set" do
+        @tester.path_prefix = "foo..bar..baz.."
+        expect(@tester.path_prefix).to eql ".foo.bar.baz"
+      end
+    end
+
     it "can recursively read entries via a path" do
       @tester["foo"] = 42
       @tester["bar"] = {
@@ -81,6 +131,26 @@ describe ::Collapsium::PathedAccess do
       expect(@tester.fetch("asdf", 42)).to eql 42
       expect(@tester[".does.not.exist"]).to be_nil
       expect(@tester.fetch(".does.not.exist", 42)).to eql 42
+    end
+  end
+
+  describe "nested inherit capabilities" do
+    before do
+      @tester['foo'] = {
+        'bar' => {
+          'baz' => 42,
+        },
+      }
+    end
+
+    it "can still perform pathed access" do
+      foo = @tester['foo']
+      expect(foo['bar.baz']).to eql 42
+    end
+
+    it "knows its path prefix" do
+      bar = @tester['foo.bar']
+      expect(bar.path_prefix).to eql '.foo.bar'
     end
   end
 
