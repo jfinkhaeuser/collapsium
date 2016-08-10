@@ -45,10 +45,29 @@ module Collapsium
         # The base class must define an instance method of method_name, otherwise
         # this will NameError. That's also a good check that sensible things are
         # being done.
-        base_method = base.instance_method(method_name.to_sym)
+        base_method = nil
+        def_method = nil
+        if base.is_a? Module
+          # The basic difference between a Module and a Class base is that for
+          # Modules, it's possible that the base doesn't yet have an instance
+          # method - in which case we'll just become a no-op.
+          begin
+            base_method = base.instance_method(method_name.to_sym)
+          rescue NameError
+            return
+          end
+          def_method = base.method(:define_method)
+        elsif base.is_a? Class
+          base_method = base.instance_method(method_name.to_sym)
+          def_method = base.method(:define_method)
+        else
+          # For objects, we need the unbound method as the base method (we'll
+          # later bind it to the instance again), and the class's define_method.
+          base_method = base.method(method_name.to_s).unbind
+          def_method = base.class.method(:define_method)
+        end
 
         # Hack for calling the private method "define_method"
-        def_method = base.method(:define_method)
         def_method.call(method_name) do |*args, &method_block|
           # Prepend the old method to the argument list; but bind it to the current
           # instance.
