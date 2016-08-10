@@ -31,7 +31,7 @@ module Collapsium
       merger = proc do |_, v1, v2|
         # rubocop:disable Style/GuardClause
         if v1.is_a? Hash and v2.is_a? Hash
-          next v1.merge(v2, &merger)
+          next v1.merge!(v2, &merger)
         elsif v1.is_a? Array and v2.is_a? Array
           next v1 + v2
         end

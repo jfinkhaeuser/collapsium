@@ -21,7 +21,8 @@ module Collapsium
       # @api private
       # Methods redefined to support pathed read access.
       READ_METHODS = [
-        :[], :default, :delete, :dup, :fetch, :has_key?, :include?, :key?, :member?,
+        :[], :default, :delete, :dup, :fetch, :has_key?, :include?, :key?,
+        :member?,
       ].freeze
 
       # @api private

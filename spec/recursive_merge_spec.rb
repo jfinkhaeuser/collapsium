@@ -67,4 +67,21 @@ describe ::Collapsium::RecursiveMerge do
 
     expect(x[:bar].length).to eql 2
   end
+
+  it "makes nested merged hashes able to merge recursively" do
+    @tester[:foo] = {
+      bar: true,
+    }
+    expect(@tester[:foo].respond_to?(:recursive_merge)).to be_falsy
+
+    to_merge = {
+      foo: {
+        bar: false,
+      },
+    }
+    x = @tester.recursive_merge(to_merge)
+
+    expect(@tester[:foo].respond_to?(:recursive_merge)).to be_falsy
+    expect(x[:foo].respond_to?(:recursive_merge)).to be_truthy
+  end
 end

@@ -10,7 +10,6 @@
 require 'collapsium/support/hash_methods'
 require 'collapsium/support/methods'
 
-
 module Collapsium
   ##
   # Tries to make extended Hash capabilities viral, i.e. provides the same
@@ -67,15 +66,19 @@ module Collapsium
       # Enhance the base by wrapping all READ_METHODS and WRITE_METHODS in
       # a wrapper that uses enhance_hash_value to, well, enhance Hash results.
       def enhance(base)
-        @@write_block ||= proc { |super_method, *args, &block|
-          arg_copy = args.map { |arg| enhance_hash_value(super_method.receiver, arg) }
+        # rubocop:disable Style/ClassVars
+        @@write_block ||= proc do |super_method, *args, &block|
+          arg_copy = args.map do |arg|
+            enhance_hash_value(super_method.receiver, arg)
+          end
           result = super_method.call(*arg_copy, &block)
           next enhance_hash_value(super_method.receiver, result)
-        }
-        @@read_block ||= proc { |super_method, *args, &block|
+        end
+        @@read_block ||= proc do |super_method, *args, &block|
           result = super_method.call(*args, &block)
           next enhance_hash_value(super_method.receiver, result)
-        }
+        end
+        # rubocop:enable Style/ClassVars
 
         READ_METHODS.each do |method_name|
           wrap_method(base, method_name, &@@read_block)
@@ -110,11 +113,14 @@ module Collapsium
               next
             end
 
-            if inner_val.class != outer_hash.class
-              new_inner_value = outer_hash.class.new
-              new_inner_value.merge!(inner_val)
-              new_value[key] = new_inner_value
+            if inner_val.class == outer_hash.class
+              new_value[key] = inner_val
+              next
             end
+
+            new_inner_value = outer_hash.class.new
+            new_inner_value.merge!(inner_val)
+            new_value[key] = new_inner_value
           end
           value = new_value
         end
@@ -131,7 +137,6 @@ module Collapsium
         # own. This *can* override a perfectly fine default_proc with our own,
         # which might suck.
         value.default_proc ||= outer_hash.default_proc
-
 
         # Finally, the class can define its own virality function.
         if outer_hash.respond_to?(:virality)

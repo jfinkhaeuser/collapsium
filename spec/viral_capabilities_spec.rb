@@ -1,5 +1,4 @@
 require 'spec_helper'
-require "pry"
 require_relative '../lib/collapsium/viral_capabilities'
 
 module TestModule
@@ -70,21 +69,19 @@ module ViralityModule
 
   def virality(value)
     # Wrap :delete to become a no-op
-    wrap_method(value, :delete) do |super_method, *args, &block|
+    wrap_method(value, :delete) do
       next true
     end
     return value
   end
 end
 
-
-
 describe ::Collapsium::ViralCapabilities do
   context PrependedHash do
-    let(:tester) {
+    let(:tester) do
       x = PrependedHash.new
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:find_me)).to be_truthy
@@ -97,10 +94,10 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context IncludedHash do
-    let(:tester) {
+    let(:tester) do
       x = IncludedHash.new
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:find_me)).to be_truthy
@@ -113,10 +110,10 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context ExtendedHash do
-    let(:tester) {
+    let(:tester) do
       x = ExtendedHash.new
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     it "does not receive viral capabilities" do
       expect(tester.respond_to?(:find_me)).to be_falsy
@@ -124,10 +121,10 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context DirectPrependedHash do
-    let(:tester) {
+    let(:tester) do
       x = DirectPrependedHash.new
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:find_me)).to be_truthy
@@ -139,10 +136,10 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context DirectIncludedHash do
-    let(:tester) {
+    let(:tester) do
       x = DirectIncludedHash.new
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:find_me)).to be_truthy
@@ -155,10 +152,10 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context DirectExtendedHash do
-    let(:tester) {
+    let(:tester) do
       x = DirectExtendedHash.new
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:find_me)).to be_truthy
@@ -175,7 +172,9 @@ describe ::Collapsium::ViralCapabilities do
 
     it "enhances values when writing" do
       data = LoggingHash.new
+      # rubocop:disable Performance/RedundantMerge
       data.merge!(bar: true)
+      # rubocop:enable Performance/RedundantMerge
 
       # This calls a write method ([]=) and should call :each on data.
       tester[:foo] = data
@@ -184,11 +183,11 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context "non-class based enhancements" do
-    let(:tester) {
-      x = Hash.new
+    let(:tester) do
+      x = {}
       x.extend(TestModule)
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:find_me)).to be_truthy
@@ -201,11 +200,11 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context ViralityModule do
-    let(:tester) {
-      x = Hash.new
+    let(:tester) do
+      x = {}
       x.extend(ViralityModule)
-      x.merge!({ foo: { bar: { baz: true } } })
-    }
+      x.merge!(foo: { bar: { baz: true } })
+    end
 
     before do
       expect(tester.respond_to?(:virality)).to be_truthy
@@ -224,7 +223,5 @@ describe ::Collapsium::ViralCapabilities do
       expect(tester[:foo].delete(:bar)).to be_truthy
       expect(tester[:foo][:bar]).not_to be_nil
     end
-
   end
-
 end
