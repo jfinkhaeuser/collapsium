@@ -42,16 +42,14 @@ module Collapsium
       #   end
       # ```
       def wrap_method(base, method_name, raise_on_missing = true, &wrapper_block)
-        puts "wrap #{base} method #{method_name} with #{wrapper_block}"
         # The base class must define an instance method of method_name, otherwise
         # this will NameError. That's also a good check that sensible things are
         # being done.
         base_method = nil
         def_method = nil
-        if base.is_a? Module or base.is_a? Class
-          # The basic difference between a Module and a Class base is that for
-          # Modules, it's possible that the base doesn't yet have an instance
-          # method - in which case we'll just become a no-op.
+        if base.is_a? Module
+          # Modules *may* not be fully defined when this is called, so in some
+          # cases it's best to ignore NameErrors.
           begin
             base_method = base.instance_method(method_name.to_sym)
           rescue NameError
@@ -62,8 +60,8 @@ module Collapsium
           end
           def_method = base.method(:define_method)
         else
-          # For objects, we need the unbound method as the base method (we'll
-          # later bind it to the instance again).
+          # For Objects and Classes, the unbound method will later be bound to
+          # the object or class to define the method on.
           base_method = base.method(method_name.to_s).unbind
           # With regards to method defintion, we only want to define methods
           # for the specific instance (i.e. use :define_singleton_method).
