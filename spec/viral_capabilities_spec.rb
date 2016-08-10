@@ -224,4 +224,25 @@ describe ::Collapsium::ViralCapabilities do
       expect(tester[:foo][:bar]).not_to be_nil
     end
   end
+
+  context "values already of the same class" do
+    let(:innermost) do
+      innermost = PrependedHash.new
+      innermost.merge!(quux: true)
+    end
+
+    let(:inner) do
+      inner = {}
+      inner.merge!(foo: true, bar: innermost)
+    end
+
+    let(:tester) do
+      PrependedHash.new
+    end
+
+    it "peforms a no-op when adding the right class" do
+      tester[:bar] = inner
+      expect(tester[:bar][:bar].object_id).to eql innermost.object_id
+    end
+  end
 end
