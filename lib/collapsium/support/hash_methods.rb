@@ -21,13 +21,13 @@ module Collapsium
       # @api private
       # Methods redefined to support pathed read access.
       READ_METHODS = [
-        :[], :default, :delete, :fetch, :has_key?, :include?, :key?, :member?,
+        :[], :default, :delete, :dup, :fetch, :has_key?, :include?, :key?, :member?,
       ].freeze
 
       # @api private
       # Methods redefined to support pathed write access.
       WRITE_METHODS = [
-        :[]=, :store,
+        :[]=, :store, :merge, :merge!,
       ].freeze
 
     end # module HashMethods
