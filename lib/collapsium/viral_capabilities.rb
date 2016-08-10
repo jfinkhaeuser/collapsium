@@ -81,11 +81,11 @@ module Collapsium
         # rubocop:enable Style/ClassVars
 
         READ_METHODS.each do |method_name|
-          wrap_method(base, method_name, &@@read_block)
+          wrap_method(base, method_name, false, &@@read_block)
         end
 
         WRITE_METHODS.each do |method_name|
-          wrap_method(base, method_name, &@@write_block)
+          wrap_method(base, method_name, false, &@@write_block)
         end
       end
 
