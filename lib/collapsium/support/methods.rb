@@ -63,9 +63,11 @@ module Collapsium
           def_method = base.method(:define_method)
         else
           # For objects, we need the unbound method as the base method (we'll
-          # later bind it to the instance again), and the class's define_method.
+          # later bind it to the instance again).
           base_method = base.method(method_name.to_s).unbind
-          def_method = base.class.method(:define_method)
+          # With regards to method defintion, we only want to define methods
+          # for the specific instance (i.e. use :define_singleton_method).
+          def_method = base.method(:define_singleton_method)
         end
 
         # Hack for calling the private method "define_method"
