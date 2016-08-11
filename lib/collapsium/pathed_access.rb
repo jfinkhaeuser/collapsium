@@ -8,6 +8,9 @@
 #
 
 require 'collapsium/support/hash_methods'
+require 'collapsium/support/methods'
+
+require 'collapsium/viral_capabilities'
 
 module Collapsium
 
@@ -23,8 +26,6 @@ module Collapsium
   # Similarly, intermediate nodes will be created when you write a value
   # for a path.
   module PathedAccess
-
-    include ::Collapsium::Support::HashMethods
 
     # @return [String] the separator is the character or pattern splitting paths.
     def separator
@@ -53,64 +54,148 @@ module Collapsium
       /(?<!\\)#{Regexp.escape(separator)}/
     end
 
-    (READ_METHODS + WRITE_METHODS).each do |method|
-      # Wrap all accessor functions to deal with paths
-      define_method(method) do |*args, &block|
-        # If there are no arguments, there's nothing to do with paths. Just
-        # delegate to the hash.
-        if args.empty?
-          return fixup_hashlike(super(*args, &block))
-        end
+    ##
+    # If the module is included, extended or prepended in a class, it'll
+    # wrap accessor methods.
+    class << self
+      include ::Collapsium::Support::HashMethods
+      include ::Collapsium::Support::Methods
 
-        # With any of the dispatch methods, we know that the first argument has
-        # to be a key. We'll try to split it by the path separator.
-        components = path_components(args[0].to_s)
-
-        # If there are no components, return self/the root
-        if components.empty?
-          return self
-        end
-
-        # This is already the leaf-most entry
-        if components.length == 1
-          # Weird edge case: if we didn't have to shift anything, then it's
-          # possible we inadvertently changed a symbol key into a string key,
-          # which could mean looking fails.
-          # We can detect that by comparing copy[0] to a symbolized version of
-          # components[0].
-          copy = args.dup
-          if copy[0] != components[0].to_sym
-            copy[0] = components[0]
+      ##
+      # Returns a proc for either read or write access. Procs for write
+      # access will create intermediary hashes when e.g. setting a value for
+      # `foo.bar.baz`, and the `bar` Hash doesn't exist yet.
+      def create_proc(write_access)
+        return proc do |super_method, *args, &block|
+          # If there are no arguments, there's nothing to do with paths. Just
+          # delegate to the hash.
+          if args.empty?
+            next super_method.call(*args, &block)
           end
 
-          return fixup_hashlike(super(*copy, &block), join_path(components))
+          # The method's receiver is encapsulated in the super_method; we'll
+          # use it a few times so let's reduce typing. This is essentially the
+          # equivalent of `self`.
+          receiver = super_method.receiver
+
+          # With any of the dispatch methods, we know that the first argument has
+          # to be a key. We'll try to split it by the path separator.
+          components = receiver.path_components(args[0].to_s)
+
+          # If there are no components, return the receiver itself/the root
+          if components.empty?
+            next receiver
+          end
+
+          # Try to find the leaf, based on the given components.
+          leaf = recursive_fetch(components, receiver, [], create: write_access)
+
+          # The tricky part is what to do with the leaf.
+          meth = nil
+          the_args = nil
+          if receiver.object_id == leaf.object_id
+            # a) if the leaf and the receiver are identical, then the receiver
+            #    itself was requested, and we really just need to delgate to its
+            #    super_method.
+            meth = super_method
+            the_args = args
+          else
+            # b) if the leaf is different from the receiver, we want to delegate
+            #    the the leaf, but only pass the last component and ensure the
+            #    entire stack of wrapped methods is used.
+            meth = leaf.method(super_method.name)
+            the_args = args.dup
+            the_args[0] = components.last
+          end
+
+          # Then we can continue with that method.
+          next meth.call(*the_args, &block)
+        end # proc
+      end # create_proc
+
+      # Create a reader and write proc, because we only know
+      PATHED_ACCESS_READER = PathedAccess.create_proc(false).freeze
+      PATHED_ACCESS_WRITER = PathedAccess.create_proc(true).freeze
+
+      def included(base)
+        enhance(base)
+      end
+
+      def extended(base)
+        enhance(base)
+      end
+
+      def prepended(base)
+        enhance(base)
+      end
+
+      def enhance(base)
+        # Make the capabilities of classes using PathedAccess viral.
+        base.extend(ViralCapabilities)
+
+        # Wrap all accessor functions to deal with paths
+        READ_METHODS.each do |method|
+          wrap_method(base, method, &PATHED_ACCESS_READER)
+        end
+        WRITE_METHODS.each do |method|
+          wrap_method(base, method, &PATHED_ACCESS_WRITER)
+        end
+      end
+
+      ##
+      # Given the path components, recursively fetch any but the last key.
+      def recursive_fetch(path, data, current_path = [], options = {})
+        # Split path into head and tail; for the next iteration, we'll look use
+        # only head, and pass tail on recursively.
+        head = path[0]
+        current_path << head
+        tail = path.slice(1, path.length)
+
+        # We know that the data has the current path. We also know that thanks to
+        # virality, data will respond to :path_prefix. So we might as well set the
+        # path, as long as it is more specific than what was previously there.
+        current_normalized = data.normalize_path(current_path)
+        if current_normalized.length > data.path_prefix.length
+          data.path_prefix = current_normalized
         end
 
-        # Deal with other paths. The frustrating part here is that for nested
-        # hashes, only this outermost one is guaranteed to know anything about
-        # path splitting, so we'll have to recurse down to the leaf here.
-        #
-        # For write methods, we need to create intermediary hashes.
-        leaf = recursive_fetch(components, self, [],
-                               create: WRITE_METHODS.include?(method))
+        # For the leaf element, we do nothing because that's where we want to
+        # dispatch to.
+        if path.length == 1
+          return data
+        end
 
-        # If we have a leaf, we want to send the requested method to that
-        # leaf.
-        copy = args.dup
-        copy[0] = components.last
-        return fixup_hashlike(leaf.send(method, *copy, &block),
-                              join_path(components))
+        # If we're a write function, then we need to create intermediary objects,
+        # i.e. what's at head if nothing is there.
+        if data[head].nil?
+          # If the head is nil, we can't recurse. In create mode that means we
+          # want to create hash children, but in read mode we're done recursing.
+          # By returning a hash here, we allow the caller to send methods on to
+          # this temporary, making a PathedAccess Hash act like any other Hash.
+          if not options[:create]
+            return {}
+          end
+
+          data[head] = {}
+        end
+
+        # Ok, recurse.
+        return recursive_fetch(tail, data[head], current_path, options)
       end
-    end
+    end # class << self
 
     ##
     # Break path into components. Expects a String path separated by the
     # `#separator`, and returns the path split into components (an Array of
     # String).
     def path_components(path)
-      components = path.split(split_pattern)
-      components.select! { |c| not c.nil? and not c.empty? }
-      return components
+      return filter_components(path.split(split_pattern))
+    end
+
+    ##
+    # Given path components, filters out unnecessary ones.
+    def filter_components(components)
+      return components.select { |c| not c.nil? and not c.empty? }
     end
 
     ##
@@ -123,78 +208,25 @@ module Collapsium
     # Normalizes a String path so that there are no empty components, and it
     # starts with a separator.
     def normalize_path(path)
-      return separator + join_path(path_components(path))
-    end
-
-    private
-
-    ##
-    # Given the path components, recursively fetch any but the last key.
-    def recursive_fetch(path, data, current_path = [], options = {})
-      # For the leaf element, we do nothing because that's where we want to
-      # dispatch to.
-      if path.length == 1
-        return fixup_hashlike(data, join_path(current_path))
+      components = []
+      if path.respond_to?(:split) # likely a String
+        components = path_components(path)
+      elsif path.respond_to?(:join) # likely an Array
+        components = filter_components(path)
       end
-
-      # Split path into head and tail; for the next iteration, we'll look use only
-      # head, and pass tail on recursively.
-      head = path[0]
-      current_path << head
-      tail = path.slice(1, path.length)
-
-      # If we're a write function, then we need to create intermediary objects,
-      # i.e. what's at head if nothing is there.
-      if data[head].nil?
-        # If the head is nil, we can't recurse. In create mode that means we
-        # want to create hash children, but in read mode we're done recursing.
-        # By returning a hash here, we allow the caller to send methods on to
-        # this temporary, making a PathedAccess Hash act like any other Hash.
-        if not options[:create]
-          return fixup_hashlike({}, join_path(current_path))
-        end
-
-        data[head] = fixup_hashlike({}, join_path(current_path))
-      end
-
-      # Ok, recurse.
-      return recursive_fetch(tail, data[head], current_path, options)
+      return separator + join_path(components)
     end
 
     ##
-    # Make a Hash-like object (if given) appear as much as this Hash-like
-    # object as possible.
-    def fixup_hashlike(value, path_prefix = nil)
-      # If it's not a Hash, return it unaltered.
-      if not value.is_a? Hash
-        return value
-      end
-
-      # If it's a Hash, but not a Hash of this particular class, then make it
-      # a Hash of this class.
-      if value.class != self.class
-        new_value = self.class.new
-        new_value.merge!(value)
-        value = new_value
-      end
-
-      # Extend all modules extended in self.
-      value_mods = (class << value; self end).included_modules
-      own_mods = (class << self; self end).included_modules
-      (own_mods - value_mods).each do |mod|
-        value.extend(mod)
-      end
-
-      # Set the default proc to our own value.
-      value.default_proc = default_proc
-
-      # Finally, if it responds to a path_prefix variable, set the path
-      # prefix.
-      if not path_prefix.nil? and value.respond_to?(:path_prefix)
-        value.path_prefix = path_prefix
-      end
-
+    # Ensure that all values have their path_prefix set.
+    def virality(value)
+      # If a value was set via a nested Hash, it may not have got its
+      # path_prefix set during storing (i.e. x[key] = { nested: some_hash }
+      # In that case, we do always know that the value's path prefix is the same
+      # as the receiver.
+      value.path_prefix = path_prefix
       return value
     end
+
   end # module PathedAccess
 end # module Collapsium
