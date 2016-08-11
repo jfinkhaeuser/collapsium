@@ -1,6 +1,10 @@
 require 'spec_helper'
 require_relative '../lib/collapsium/pathed_access'
 
+class TestHash < Hash
+  prepend ::Collapsium::PathedAccess
+end
+
 describe ::Collapsium::PathedAccess do
   before :each do
     @tester = {}
@@ -172,6 +176,15 @@ describe ::Collapsium::PathedAccess do
       @tester['foo.bar'] = 123
       expect(@tester['foo.bar']).to eql 123
       expect(@tester['foo.baz']).to eql 'quux'
+    end
+  end
+
+  context TestHash do
+    let(:test_hash) { TestHash.new }
+
+    it "can write recursively" do
+      test_hash["foo.bar"] = 42
+      expect(test_hash["foo.bar"]).to eql 42
     end
   end
 end
