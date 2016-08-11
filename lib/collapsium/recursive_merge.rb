@@ -7,10 +7,16 @@
 # All rights reserved.
 #
 
+require 'collapsium/viral_capabilities'
+
 module Collapsium
   ##
   # Provides recursive merge functions for hashes.
   module RecursiveMerge
+
+    # Make the capabilities of classes using RecursiveMerge viral.
+    extend ViralCapabilities
+
     ##
     # Recursively merge `:other` into this Hash.
     #
@@ -49,9 +55,7 @@ module Collapsium
     # Same as `dup.recursive_merge!`
     # @param (see #recursive_merge!)
     def recursive_merge(other, overwrite = true)
-      copy = dup
-      copy.extend(RecursiveMerge)
-      return copy.recursive_merge!(other, overwrite)
+      return dup.recursive_merge!(other, overwrite)
     end
   end # module RecursiveMerge
 end # module Collapsium
