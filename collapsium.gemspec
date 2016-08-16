@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.0'
 
   spec.add_development_dependency "bundler", "~> 1.12"
-  spec.add_development_dependency "rubocop", "~> 0.41"
+  spec.add_development_dependency "rubocop", "~> 0.42"
   spec.add_development_dependency "rake", "~> 11.2"
   spec.add_development_dependency "rspec", "~> 3.5"
   spec.add_development_dependency "simplecov", "~> 0.12"
