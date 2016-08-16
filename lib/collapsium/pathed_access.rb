@@ -134,10 +134,10 @@ module Collapsium
         base.extend(ViralCapabilities)
 
         # Wrap all accessor functions to deal with paths
-        READ_METHODS.each do |method|
+        KEYED_READ_METHODS.each do |method|
           wrap_method(base, method, &PATHED_ACCESS_READER)
         end
-        WRITE_METHODS.each do |method|
+        KEYED_WRITE_METHODS.each do |method|
           wrap_method(base, method, &PATHED_ACCESS_WRITER)
         end
       end

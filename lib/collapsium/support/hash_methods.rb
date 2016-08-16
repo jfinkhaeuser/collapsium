@@ -19,16 +19,26 @@ module Collapsium
     module HashMethods
 
       # @api private
-      # Methods redefined to support pathed read access.
-      READ_METHODS = [
-        :[], :default, :delete, :dup, :fetch, :has_key?, :include?, :key?,
-        :member?,
+      # Read access methods with key parameter
+      KEYED_READ_METHODS = [
+        :[], :default, :delete, :fetch, :has_key?, :include?, :key?,
       ].freeze
 
       # @api private
-      # Methods redefined to support pathed write access.
-      WRITE_METHODS = [
-        :[]=, :store, :merge, :merge!,
+      # All read access methods
+      READ_METHODS = KEYED_READ_METHODS + [
+        :dup,
+      ].freeze
+
+      # @api private
+      # Write access methods with key parameter
+      KEYED_WRITE_METHODS = [
+        :[]=, :store,
+      ].freeze
+
+      # All write access methods
+      WRITE_METHODS = KEYED_WRITE_METHODS + [
+        :merge, :merge!,
       ].freeze
 
     end # module HashMethods
