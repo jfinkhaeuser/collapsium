@@ -7,16 +7,20 @@
 # All rights reserved.
 #
 
+require 'collapsium/viral_capabilities'
+
 module Collapsium
   ##
   # Provides recursive (deep) dup function for hashes.
   module RecursiveDup
+    # Clone Hash extensions for nested Hashes
+    extend ViralCapabilities
+
     def recursive_dup
       ret = map do |k, v|
         # Hash values, recurse into them.
         if v.is_a?(Hash)
-          n = v.dup # we duplicate v to not extend it.
-          n.extend(RecursiveDup)
+          n = ViralCapabilities.enhance_hash_value(self, v)
           next [k, n.recursive_dup]
         end
 
@@ -28,7 +32,8 @@ module Collapsium
           next [k, v]
         end
       end
-      return Hash[ret]
+      ret = Hash[ret]
+      return ViralCapabilities.enhance_hash_value(self, ret)
     end
 
     alias deep_dup recursive_dup
