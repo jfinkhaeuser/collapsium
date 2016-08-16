@@ -13,16 +13,22 @@ require 'collapsium/recursive_sort'
 require 'collapsium/indifferent_access'
 require 'collapsium/pathed_access'
 require 'collapsium/prototype_match'
+require 'collapsium/viral_capabilities'
+
+require 'collapsium/support/hash_methods'
 
 module Collapsium
 
   # A Hash that includes all the different Hash extensions in collapsium
   class UberHash < Hash
+    include ViralCapabilities
     include RecursiveMerge
     include RecursiveDup
     include RecursiveSort
     include PathedAccess
     include PrototypeMatch
+
+    include Support::HashMethods
 
     def initialize(*args)
       super
@@ -36,10 +42,6 @@ module Collapsium
       end
 
       recursive_merge!(args[0])
-    end
-
-    def dup
-      return UberHash.new(self)
     end
   end
 
