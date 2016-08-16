@@ -1,7 +1,7 @@
 require 'spec_helper'
 require_relative '../lib/collapsium/pathed_access'
 
-class TestHash < Hash
+class PathedHash < Hash
   prepend ::Collapsium::PathedAccess
 end
 
@@ -179,8 +179,8 @@ describe ::Collapsium::PathedAccess do
     end
   end
 
-  context TestHash do
-    let(:test_hash) { TestHash.new }
+  context PathedHash do
+    let(:test_hash) { PathedHash.new }
 
     it "can write recursively" do
       test_hash["foo.bar"] = 42
