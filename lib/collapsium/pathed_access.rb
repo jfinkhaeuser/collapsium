@@ -92,18 +92,22 @@ module Collapsium
 
           # The tricky part is what to do with the leaf.
           meth = nil
-          the_args = nil
           if receiver.object_id == leaf.object_id
             # a) if the leaf and the receiver are identical, then the receiver
-            #    itself was requested, and we really just need to delgate to its
+            #    itself was requested, and we really just need to delegate to its
             #    super_method.
             meth = super_method
-            the_args = args
           else
             # b) if the leaf is different from the receiver, we want to delegate
-            #    the the leaf, but only pass the last component and ensure the
-            #    entire stack of wrapped methods is used.
+            #    to the leaf.
             meth = leaf.method(super_method.name)
+          end
+
+          # If the first argument was a symbol key, we want to use it verbatim.
+          # Otherwise we had pathed access, and only want to pass the last
+          # component to whatever method we're calling.
+          the_args = args
+          if not args[0].is_a?(Symbol)
             the_args = args.dup
             the_args[0] = components.last
           end
