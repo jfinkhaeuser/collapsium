@@ -137,4 +137,10 @@ describe ::Collapsium::EnvironmentOverride do
       expect(test_hash["foo"]).to eql "test"
     end
   end
+
+  context "coverage" do
+    it "raises when not passing arguments" do
+      expect { @tester.fetch }.to raise_error
+    end
+  end
 end
