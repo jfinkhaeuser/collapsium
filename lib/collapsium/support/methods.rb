@@ -16,10 +16,9 @@ module Collapsium
     ##
     # Functionality for extending the behaviour of Hash methods
     module Methods
-
       ##
       # Given the base module, wraps the given method name in the given block.
-      # The block must accept the super_method as the first parameter, followed
+      # The block must accept the wrapped_method as the first parameter, followed
       # by any arguments and blocks the super method might accept.
       #
       # The canonical usage example is of a module that when prepended wraps
@@ -31,9 +30,9 @@ module Collapsium
       #       include ::Collapsium::Support::Methods
       #
       #       def prepended(base)
-      #         wrap_method(base, :method_to_wrap) do |super_method, *args, &block|
+      #         wrap_method(base, :method_to_wrap) do |wrapped_method, *args, &block|
       #           # modify args, if desired
-      #           result = super_method.call(*args, &block)
+      #           result = wrapped_method.call(*args, &block)
       #           # do something with the result, if desired
       #           next result
       #         end
@@ -41,7 +40,13 @@ module Collapsium
       #     end
       #   end
       # ```
-      def wrap_method(base, method_name, raise_on_missing = true, &wrapper_block)
+      def wrap_method(base, method_name, options = {}, &wrapper_block)
+        # Option defaults (need to check for nil if we default to true)
+        if options[:raise_on_missing].nil?
+          options[:raise_on_missing] = true
+        end
+        options[:raise_on_duplicate] ||= false
+
         # The base class must define an instance method of method_name, otherwise
         # this will NameError. That's also a good check that sensible things are
         # being done.
@@ -53,7 +58,7 @@ module Collapsium
           begin
             base_method = base.instance_method(method_name.to_sym)
           rescue NameError
-            if raise_on_missing
+            if options[:raise_on_missing]
               raise
             end
             return
@@ -68,12 +73,26 @@ module Collapsium
           def_method = base.method(:define_singleton_method)
         end
 
+        # Prevent duplicate bindings.
+        owner = base_method.owner.object_id
+        the_binding = [method_name, owner]
+        @@bindings ||= {}
+        @@bindings[owner] ||= []
+        if @@bindings[owner].include?(the_binding)
+          if options[:raise_on_duplicate]
+            msg = "Duplicate binding: #{wrapper_block} as :#{method_name} for #{base_method.owner}"
+            raise RuntimeError, msg
+          end
+          return
+        end
+        @@bindings[owner] << the_binding
+
         # Hack for calling the private method "define_method"
         def_method.call(method_name) do |*args, &method_block|
           # Prepend the old method to the argument list; but bind it to the current
           # instance.
-          super_method = base_method.bind(self)
-          args.unshift(super_method)
+          wrapped_method = base_method.bind(self)
+          args.unshift(wrapped_method)
 
           # Then yield to the given wrapper block. The wrapper should decide
           # whether to call the old method or not.
