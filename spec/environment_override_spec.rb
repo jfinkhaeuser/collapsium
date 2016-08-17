@@ -148,7 +148,7 @@ describe ::Collapsium::EnvironmentOverride do
 
   context "coverage" do
     it "raises when not passing arguments" do
-      expect { @tester.fetch }.to raise_error
+      expect { @tester.fetch }.to raise_error(ArgumentError)
     end
   end
 end
