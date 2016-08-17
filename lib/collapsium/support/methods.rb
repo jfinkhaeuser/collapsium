@@ -30,7 +30,7 @@ module Collapsium
       #       include ::Collapsium::Support::Methods
       #
       #       def prepended(base)
-      #         wrap_method(base, :method_to_wrap) do |wrapped_method, *args, &block|
+      #         wrap_method(base, :method_name) do |wrapped_method, *args, &block|
       #           # modify args, if desired
       #           result = wrapped_method.call(*args, &block)
       #           # do something with the result, if desired
@@ -48,46 +48,19 @@ module Collapsium
         options[:raise_on_duplicate] ||= false
         options[:prevent_duplicates] ||= false
 
-        # The base class must define an instance method of method_name, otherwise
-        # this will NameError. That's also a good check that sensible things are
-        # being done.
-        base_method = nil
-        def_method = nil
-        if base.is_a? Module
-          # Modules *may* not be fully defined when this is called, so in some
-          # cases it's best to ignore NameErrors.
-          begin
-            base_method = base.instance_method(method_name.to_sym)
-          rescue NameError
-            if options[:raise_on_missing]
-              raise
-            end
-            return
-          end
-          def_method = base.method(:define_method)
-        else
-          # For Objects and Classes, the unbound method will later be bound to
-          # the object or class to define the method on.
-          base_method = base.method(method_name.to_s).unbind
-          # With regards to method defintion, we only want to define methods
-          # for the specific instance (i.e. use :define_singleton_method).
-          def_method = base.method(:define_singleton_method)
+        # Grab helper methods
+        base_method, def_method = resolve_helpers(base, method_name,
+                                                  options[:raise_on_missing])
+        if base_method.nil?
+          # Indicates that we're not done building a Module yet
+          return
         end
 
         # Prevent duplicate bindings.
         if options[:prevent_duplicates]
-          owner = base_method.owner.object_id
-          the_binding = [method_name, owner]
-          @@__collapsium_methods_bindings ||= {}
-          @@__collapsium_methods_bindings[owner] ||= []
-          if @@__collapsium_methods_bindings[owner].include?(the_binding)
-            if options[:raise_on_duplicate]
-              msg = "Duplicate binding: #{wrapper_block} as :#{method_name} for #{base_method.owner}"
-              raise RuntimeError, msg
-            end
+          if Methods.duplicate?(base_method.owner, method_name, wrapper_block)
             return
           end
-          @@__collapsium_methods_bindings[owner] << the_binding
         end
 
         # Hack for calling the private method "define_method"
@@ -103,15 +76,9 @@ module Collapsium
           # it ourselves.
           wrapped_method = base_method.bind(self)
 
-          # We're trying to find a loop in the callstack with this current
-          # binding already appended.
-          stack = @__collapsium_methods_callstack.dup
-          stack << the_binding
-          loops = Methods.repeated(stack)
-
           # If we do find a loop with the current binding involved, we'll just
           # call the wrapped method.
-          if loops.include?(the_binding)
+          if Methods.loop_detected?(the_binding, @__collapsium_methods_callstack)
             next wrapped_method.call(*args, &method_block)
           end
 
@@ -131,11 +98,78 @@ module Collapsium
         end
       end
 
-      def self.repeated(array)
-        counts = Hash.new(0)
-        array.each{|val|counts[val]+=1}
-        counts.reject{|val,count|count==1}.keys
+      def resolve_helpers(base, method_name, raise_on_missing)
+        # The base class must define an instance method of method_name, otherwise
+        # this will NameError. That's also a good check that sensible things are
+        # being done.
+        base_method = nil
+        def_method = nil
+        if base.is_a? Module
+          # Modules *may* not be fully defined when this is called, so in some
+          # cases it's best to ignore NameErrors.
+          begin
+            base_method = base.instance_method(method_name.to_sym)
+          rescue NameError
+            if raise_on_missing
+              raise
+            end
+            return base_method, def_method
+          end
+          def_method = base.method(:define_method)
+        else
+          # For Objects and Classes, the unbound method will later be bound to
+          # the object or class to define the method on.
+          base_method = base.method(method_name.to_s).unbind
+          # With regards to method defintion, we only want to define methods
+          # for the specific instance (i.e. use :define_singleton_method).
+          def_method = base.method(:define_singleton_method)
+        end
+
+        return base_method, def_method
       end
+
+      class << self
+        # Given an input array, return repeated sequences from the array. It's
+        # used in loop detection.
+        def repeated(array)
+          counts = Hash.new(0)
+          array.each { |val| counts[val] += 1 }
+          return counts.reject { |_, count| count == 1 }.keys
+        end
+
+        # Given a call stack and a binding, returns true if there seems to be a
+        # loop in the call stack with the binding causing it, false otherwise.
+        def loop_detected?(the_binding, stack)
+          # Make a temporary stack with the binding pushed
+          tmp_stack = stack.dup
+          tmp_stack << the_binding
+          loops = Methods.repeated(tmp_stack)
+
+          # If we do find a loop with the current binding involved, we'll just
+          # call the wrapped method.
+          return loops.include?(the_binding)
+        end
+
+        # Returns true if the owner already has the wrapper block registered for
+        # this method name, false otherwise.
+        def duplicate?(owner, method_name, &wrapper_block)
+          owner_id = owner.object_id
+          the_binding = [method_name, owner_id]
+
+          @__collapsium_methods_bindings ||= {}
+          @__collapsium_methods_bindings[owner_id] ||= []
+
+          if @__collapsium_methods_bindings[owner_id].include?(the_binding)
+            if options[:raise_on_duplicate]
+              msg = "Duplicate binding: #{wrapper_block} as :#{method_name} for "\
+                "#{owner}"
+              raise ScriptError, msg
+            end
+            return
+          end
+          @__collapsium_methods_bindings[owner] << the_binding
+        end
+      end # class << self
 
     end # module Methods
 
