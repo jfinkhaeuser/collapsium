@@ -45,8 +45,6 @@ module Collapsium
         if options[:raise_on_missing].nil?
           options[:raise_on_missing] = true
         end
-        options[:raise_on_duplicate] ||= false
-        options[:prevent_duplicates] ||= false
 
         # Grab helper methods
         base_method, def_method = resolve_helpers(base, method_name,
@@ -54,13 +52,6 @@ module Collapsium
         if base_method.nil?
           # Indicates that we're not done building a Module yet
           return
-        end
-
-        # Prevent duplicate bindings.
-        if options[:prevent_duplicates]
-          if Methods.duplicate?(base_method.owner, method_name, wrapper_block)
-            return
-          end
         end
 
         # Hack for calling the private method "define_method"
@@ -148,26 +139,6 @@ module Collapsium
           # If we do find a loop with the current binding involved, we'll just
           # call the wrapped method.
           return loops.include?(the_binding)
-        end
-
-        # Returns true if the owner already has the wrapper block registered for
-        # this method name, false otherwise.
-        def duplicate?(owner, method_name, &wrapper_block)
-          owner_id = owner.object_id
-          the_binding = [method_name, owner_id]
-
-          @__collapsium_methods_bindings ||= {}
-          @__collapsium_methods_bindings[owner_id] ||= []
-
-          if @__collapsium_methods_bindings[owner_id].include?(the_binding)
-            if options[:raise_on_duplicate]
-              msg = "Duplicate binding: #{wrapper_block} as :#{method_name} for "\
-                "#{owner}"
-              raise ScriptError, msg
-            end
-            return
-          end
-          @__collapsium_methods_bindings[owner] << the_binding
         end
       end # class << self
 
