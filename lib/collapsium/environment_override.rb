@@ -80,6 +80,17 @@ module Collapsium
             next
           end
 
+          # If the environment variable parses as JSON, that's great, we'll use
+          # the parsed result. Otherwise use it as a string.
+          require 'json'
+          # rubocop:disable Lint/HandleExceptions
+          begin
+            env_value = JSON.parse(env_value)
+          rescue JSON::ParserError
+            # Do nothing. We just use the env_value verbatim.
+          end
+          # rubocop:enable Lint/HandleExceptions
+
           # For the given key, retrieve the current value. We'll need it later.
           # Note that we deliberately do not use any of KEYED_READ_METHODS,
           # because that would recurse infinitely.

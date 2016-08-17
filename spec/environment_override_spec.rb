@@ -12,8 +12,8 @@ describe ::Collapsium::EnvironmentOverride do
   before :each do
     @tester = { "foo" => { "bar" => 42 } }
     @tester.extend(::Collapsium::EnvironmentOverride)
-    ENV["FOO"] = nil
-    ENV["BAR"] = nil
+    ENV.delete("FOO")
+    ENV.delete("BAR")
   end
 
   context "environment variable name" do
@@ -135,6 +135,14 @@ describe ::Collapsium::EnvironmentOverride do
     it "works when prepended" do
       ENV["FOO"] = "test"
       expect(test_hash["foo"]).to eql "test"
+    end
+  end
+
+  context "JSON" do
+    it "interprets JSON content in environment variables" do
+      ENV["FOO"] = '{ "json_key": "json_value" }'
+      expect(@tester["foo"].is_a?(Hash)).to be_truthy
+      expect(@tester["foo"]["json_key"]).to eql "json_value"
     end
   end
 
