@@ -38,17 +38,17 @@ module Collapsium
 
       ##
       # Returns a proc read access.
-      ENV_ACCESS_READER = proc do |super_method, *args, &block|
+      ENV_ACCESS_READER = proc do |wrapped_method, *args, &block|
         # If there are no arguments, there's nothing to do with paths. Just
         # delegate to the hash.
         if args.empty?
-          next super_method.call(*args, &block)
+          next wrapped_method.call(*args, &block)
         end
 
-        # The method's receiver is encapsulated in the super_method; we'll
+        # The method's receiver is encapsulated in the wrapped_method; we'll
         # use it a few times so let's reduce typing. This is essentially the
         # equivalent of `self`.
-        receiver = super_method.receiver
+        receiver = wrapped_method.receiver
 
         # All KEYED_READ_METHODS have a key as the first argument.
         key = args[0]
@@ -91,7 +91,6 @@ module Collapsium
           end
           # rubocop:enable Lint/HandleExceptions
 
-          # For the given key, retrieve the current value. We'll need it later.
           # Note that we deliberately do not use any of KEYED_READ_METHODS,
           # because that would recurse infinitely.
           old_value = nil
@@ -105,7 +104,7 @@ module Collapsium
           # Note that we re-assign the value only if it's changed, but we
           # break either way. If env_value exists, it must be used, but
           # changing it always will lead to an infinite recursion.
-          # The double's super_method will never be called, but rather
+          # The double's wrapped_method will never be called, but rather
           # always this wrapper.
           if env_value != old_value
             value = env_value
@@ -116,15 +115,15 @@ module Collapsium
           # We can't just return the value, because that doesn't respect the
           # method being called. We can deal with this by duplicating the
           # receiver, writing the value we found into the appropriate key,
-          # and then sending the super_method to the duplicate.
+          # and then sending the wrapped_method to the duplicate.
           double = receiver.dup
           double[key] = value
-          meth = double.method(super_method.name)
+          meth = double.method(wrapped_method.name)
           next meth.call(*args, &block)
         end
 
         # Otherwise, fall back on the super method.
-        next super_method.call(*args, &block)
+        next wrapped_method.call(*args, &block)
       end.freeze # proc
 
       def included(base)

@@ -66,17 +66,17 @@ module Collapsium
       # access will create intermediary hashes when e.g. setting a value for
       # `foo.bar.baz`, and the `bar` Hash doesn't exist yet.
       def create_proc(write_access)
-        return proc do |super_method, *args, &block|
+        return proc do |wrapped_method, *args, &block|
           # If there are no arguments, there's nothing to do with paths. Just
           # delegate to the hash.
           if args.empty?
-            next super_method.call(*args, &block)
+            next wrapped_method.call(*args, &block)
           end
 
-          # The method's receiver is encapsulated in the super_method; we'll
+          # The method's receiver is encapsulated in the wrapped_method; we'll
           # use it a few times so let's reduce typing. This is essentially the
           # equivalent of `self`.
-          receiver = super_method.receiver
+          receiver = wrapped_method.receiver
 
           # With any of the dispatch methods, we know that the first argument has
           # to be a key. We'll try to split it by the path separator.
@@ -95,12 +95,12 @@ module Collapsium
           if receiver.object_id == leaf.object_id
             # a) if the leaf and the receiver are identical, then the receiver
             #    itself was requested, and we really just need to delegate to its
-            #    super_method.
-            meth = super_method
+            #    wrapped_method.
+            meth = wrapped_method
           else
             # b) if the leaf is different from the receiver, we want to delegate
             #    to the leaf.
-            meth = leaf.method(super_method.name)
+            meth = leaf.method(wrapped_method.name)
           end
 
           # If the first argument was a symbol key, we want to use it verbatim.

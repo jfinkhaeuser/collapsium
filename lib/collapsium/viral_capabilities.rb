@@ -67,25 +67,25 @@ module Collapsium
       # a wrapper that uses enhance_hash_value to, well, enhance Hash results.
       def enhance(base)
         # rubocop:disable Style/ClassVars
-        @@write_block ||= proc do |super_method, *args, &block|
+        @@write_block ||= proc do |wrapped_method, *args, &block|
           arg_copy = args.map do |arg|
-            enhance_hash_value(super_method.receiver, arg)
+            enhance_hash_value(wrapped_method.receiver, arg)
           end
-          result = super_method.call(*arg_copy, &block)
-          next enhance_hash_value(super_method.receiver, result)
+          result = wrapped_method.call(*arg_copy, &block)
+          next enhance_hash_value(wrapped_method.receiver, result)
         end
-        @@read_block ||= proc do |super_method, *args, &block|
-          result = super_method.call(*args, &block)
-          next enhance_hash_value(super_method.receiver, result)
+        @@read_block ||= proc do |wrapped_method, *args, &block|
+          result = wrapped_method.call(*args, &block)
+          next enhance_hash_value(wrapped_method.receiver, result)
         end
         # rubocop:enable Style/ClassVars
 
         READ_METHODS.each do |method_name|
-          wrap_method(base, method_name, false, &@@read_block)
+          wrap_method(base, method_name, raise_on_missing: false, &@@read_block)
         end
 
         WRITE_METHODS.each do |method_name|
-          wrap_method(base, method_name, false, &@@write_block)
+          wrap_method(base, method_name, raise_on_missing: false, &@@write_block)
         end
       end
 
