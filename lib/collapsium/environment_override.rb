@@ -91,22 +91,12 @@ module Collapsium
           end
           # rubocop:enable Lint/HandleExceptions
 
-          # Note that we deliberately do not use any of KEYED_READ_METHODS,
-          # because that would recurse infinitely.
-          old_value = nil
-          receiver.each do |k, v|
-            if k == key
-              old_value = v
-              break
-            end
-          end
-
           # Note that we re-assign the value only if it's changed, but we
           # break either way. If env_value exists, it must be used, but
           # changing it always will lead to an infinite recursion.
           # The double's wrapped_method will never be called, but rather
           # always this wrapper.
-          if env_value != old_value
+          if env_value != receiver[key]
             value = env_value
           end
           break
