@@ -39,6 +39,12 @@ module Collapsium
       ##
       # Returns a proc read access.
       ENV_ACCESS_READER = proc do |super_method, *args, &block|
+        # If there are no arguments, there's nothing to do with paths. Just
+        # delegate to the hash.
+        if args.empty?
+          next super_method.call(*args, &block)
+        end
+
         # The method's receiver is encapsulated in the super_method; we'll
         # use it a few times so let's reduce typing. This is essentially the
         # equivalent of `self`.
@@ -49,16 +55,20 @@ module Collapsium
 
         # Grab matching environment variable names. We consider first a pathed
         # name, if pathed access is supported, followed by the unpathed name.
-        env_keys = [key]
-        if receiver.respond_to?(:path_prefix)
+        env_keys = [key.to_s]
+        if receiver.respond_to?(:path_prefix) and not
+            (receiver.path_prefix.nil? or receiver.path_prefix.empty?)
           prefix_components = receiver.path_components(receiver.path_prefix)
+
           if prefix_components.last == key
             env_keys.unshift(receiver.path_prefix)
           else
-            env_keys.unshift(receiver.path_prefix + receiver.separator + key)
+            env_keys.unshift(receiver.path_prefix + receiver.separator + key.to_s)
           end
         end
         env_keys.map! { |k| receiver.key_to_env(k) }
+        env_keys.select! { |k| not k.empty? }
+        env_keys.uniq!
 
         # When we have the keys (in priority order), try to see if the
         # environment yields something useful.
