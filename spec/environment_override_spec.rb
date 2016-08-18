@@ -37,7 +37,7 @@ describe ::Collapsium::EnvironmentOverride do
     end
   end
 
-  context "without pathed access" do
+  context "without PathedAccess" do
     it "overrides first-order keys" do
       expect(@tester["foo"].is_a?(Hash)).to be_truthy
       ENV["FOO"] = "test"
@@ -55,17 +55,31 @@ describe ::Collapsium::EnvironmentOverride do
     it "write still works" do
       @tester.store("foo", 42)
       expect(@tester["foo"]).to eql 42
+    end
+
+    it "changes with every env change" do
+      ENV["BAR"] = "test1"
+      expect(@tester["foo"]["bar"]).to eql "test1"
+      ENV["BAR"] = "test2"
+      expect(@tester["foo"]["bar"]).to eql "test2"
+    end
+
+    it "resets when the env resets" do
+      ENV["BAR"] = "test"
+      expect(@tester["foo"]["bar"]).to eql "test"
+      ENV.delete("BAR")
+      expect(@tester["foo"]["bar"]).to eql 42
     end
   end
 
-  context "with pathed access" do
+  context "with PathedAccess" do
     before :each do
       @tester = { "foo" => { "bar" => 42 } }
-      @tester.extend(::Collapsium::EnvironmentOverride)
       @tester.extend(::Collapsium::PathedAccess)
-      ENV["FOO"] = nil
-      ENV["BAR"] = nil
-      ENV["FOO_BAR"] = nil
+      @tester.extend(::Collapsium::EnvironmentOverride)
+      ENV.delete("FOO")
+      ENV.delete("BAR")
+      ENV.delete("FOO_BAR")
     end
 
     it "overrides first-order keys" do
@@ -76,15 +90,29 @@ describe ::Collapsium::EnvironmentOverride do
     end
 
     it "inherits environment override" do
-      expect(@tester["foo"]["bar"].is_a?(Fixnum)).to be_truthy
+      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_truthy
       ENV["BAR"] = "test"
-      expect(@tester["foo"]["bar"].is_a?(Fixnum)).to be_falsy
-      expect(@tester["foo"]["bar"]).to eql "test"
+      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_falsy
+      expect(@tester["foo.bar"]).to eql "test"
     end
 
     it "write still works" do
       @tester.store("foo", 42)
       expect(@tester["foo"]).to eql 42
+    end
+
+    it "changes with every env change" do
+      ENV["BAR"] = "test1"
+      expect(@tester["foo.bar"]).to eql "test1"
+      ENV["BAR"] = "test2"
+      expect(@tester["foo.bar"]).to eql "test2"
+    end
+
+    it "resets when the env resets" do
+      ENV["BAR"] = "test"
+      expect(@tester["foo.bar"]).to eql "test"
+      ENV.delete("BAR")
+      expect(@tester["foo.bar"]).to eql 42
     end
 
     it "overrides from pathed key" do
@@ -143,6 +171,17 @@ describe ::Collapsium::EnvironmentOverride do
       ENV["FOO"] = '{ "json_key": "json_value" }'
       expect(@tester["foo"].is_a?(Hash)).to be_truthy
       expect(@tester["foo"]["json_key"]).to eql "json_value"
+    end
+
+    it "respects PathedAccess" do
+      @tester = { "foo" => { "bar" => 42 } }
+      @tester.extend(::Collapsium::PathedAccess)
+      @tester.extend(::Collapsium::EnvironmentOverride)
+
+      ENV["FOO_BAR"] = '{ "json_key": "json_value" }'
+      expect(@tester["foo.bar"].is_a?(Hash)).to be_truthy
+      expect(@tester["foo.bar"]["json_key"]).to eql "json_value"
+      expect(@tester["foo"]["bar.json_key"]).to eql "json_value"
     end
   end
 
