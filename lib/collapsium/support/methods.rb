@@ -63,7 +63,7 @@ module Collapsium
           # Our current binding is based on the wrapper block and our own class,
           # as well as the arguments (CRC32).
           require 'zlib'
-          signature = Zlib::crc32(JSON::dump(args))
+          signature = Zlib.crc32(JSON.dump(args))
           the_binding = [wrapper_block.object_id, self.class.object_id, signature]
 
           # We'll either pass the wrapped method to the wrapper block, or invoke
