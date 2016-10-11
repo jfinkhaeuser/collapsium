@@ -11,36 +11,6 @@ describe ::Collapsium::PathedAccess do
     @tester.extend(::Collapsium::PathedAccess)
   end
 
-  describe "Path components" do
-    it "splits a path into components" do
-      expect(@tester.path_components("foo.bar")).to eql %w(foo bar)
-    end
-
-    it "strips empty components at the beginning" do
-      expect(@tester.path_components("..foo.bar")).to eql %w(foo bar)
-    end
-
-    it "strips empty components at the end" do
-      expect(@tester.path_components("foo.bar..")).to eql %w(foo bar)
-    end
-
-    it "strips empty components in the middle" do
-      expect(@tester.path_components("foo...bar")).to eql %w(foo bar)
-    end
-
-    it "joins path components" do
-      expect(@tester.join_path(%w(foo bar))).to eql "foo.bar"
-    end
-
-    it "joins empty components to an empty string" do
-      expect(@tester.join_path([])).to eql ""
-    end
-
-    it "normalizes a path" do
-      expect(@tester.normalize_path("foo..bar..baz.")).to eql ".foo.bar.baz"
-    end
-  end
-
   describe "Hash-like" do
     it "responds to Hash functions" do
       [:invert, :delete, :fetch].each do |meth|

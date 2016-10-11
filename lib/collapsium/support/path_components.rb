@@ -46,6 +46,7 @@ module Collapsium
         @separator ||= DEFAULT_SEPARATOR
         return @separator
       end
+      attr_writer :separator
 
       ##
       # Break path into components. Expects a String path separated by the
