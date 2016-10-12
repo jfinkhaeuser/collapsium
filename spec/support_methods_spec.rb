@@ -48,12 +48,14 @@ module NonRaising
     end
 
     def prepended(base)
-      wrap_method(base, :calling_test, raise_on_missing: false) do |super_method, *args, &block|
+      opts = { raise_on_missing: false }
+
+      wrap_method(base, :calling_test, opts) do |super_method, *args, &block|
         result = super_method.call(*args, &block)
         next "nonraising: #{result}"
       end
 
-      wrap_method(base, :test, raise_on_missing: false) do
+      wrap_method(base, :test, opts) do
         next "nonraising"
       end
     end
@@ -69,7 +71,7 @@ module Looping
     end
 
     def prepended(base)
-      wrap_method(base, :loop, raise_on_missing: false) do |super_method, *args, &block|
+      wrap_method(base, :loop, raise_on_missing: false) do |super_method, *_, &_|
         super_method.receiver.loop
       end
     end
@@ -206,11 +208,15 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 2
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 2
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 2
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 2
       end
     end
 
@@ -226,11 +232,15 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 2
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 2
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 2
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 2
       end
     end
 
@@ -246,12 +256,17 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 1
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 1
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 1
-      end    end
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 1
+      end
+    end
 
     context PrependNested do
       let(:tester) { PrependNested.new }
@@ -265,12 +280,17 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 1
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 1
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 1
-      end    end
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 1
+      end
+    end
 
     context IncludeNested do
       let(:tester) { IncludeNested.new }
@@ -284,12 +304,17 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 1
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 1
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 1
-      end    end
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 1
+      end
+    end
 
     context IncludeNestedWithOwn do
       let(:tester) { IncludeNestedWithOwn.new }
@@ -303,12 +328,17 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 1
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 1
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 1
-      end    end
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 1
+      end
+    end
 
     context PrependNestedWithOwn do
       let(:tester) { PrependNestedWithOwn.new }
@@ -322,11 +352,15 @@ describe ::Collapsium::Support::Methods do
       end
 
       it "defines two wrappers for #test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :test).size).to eql 1
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :test).size
+        ).to eql 1
       end
 
       it "defines two wrappers for #calling_test" do
-        expect(::Collapsium::Support::Methods.wrappers(tester, :calling_test).size).to eql 1
+        expect(
+          ::Collapsium::Support::Methods.wrappers(tester, :calling_test).size
+        ).to eql 1
       end
     end
 
@@ -369,35 +403,51 @@ describe ::Collapsium::Support::Methods do
 
   context "#wrappers" do
     it "finds wrappers in FirstThenSecond" do
-      expect(::Collapsium::Support::Methods.wrappers(FirstThenSecond, :test).size).to eql 2
+      expect(
+        ::Collapsium::Support::Methods.wrappers(FirstThenSecond, :test).size
+      ).to eql 2
     end
 
     it "finds wrappers in SecondThenFirst" do
-      expect(::Collapsium::Support::Methods.wrappers(SecondThenFirst, :test).size).to eql 2
+      expect(
+        ::Collapsium::Support::Methods.wrappers(SecondThenFirst, :test).size
+      ).to eql 2
     end
 
     it "finds wrappers in Included" do
-      expect(::Collapsium::Support::Methods.wrappers(Included, :test).size).to eql 1
+      expect(
+        ::Collapsium::Support::Methods.wrappers(Included, :test).size
+      ).to eql 1
     end
 
     it "finds wrappers in NestModule" do
-      expect(::Collapsium::Support::Methods.wrappers(NestModule, :test).size).to eql 1
+      expect(
+        ::Collapsium::Support::Methods.wrappers(NestModule, :test).size
+      ).to eql 1
     end
 
     it "finds wrappers in PrependNested" do
-      expect(::Collapsium::Support::Methods.wrappers(PrependNested, :test).size).to eql 1
+      expect(
+        ::Collapsium::Support::Methods.wrappers(PrependNested, :test).size
+      ).to eql 1
     end
 
     it "finds wrappers in IncludeNested" do
-      expect(::Collapsium::Support::Methods.wrappers(IncludeNested, :test).size).to eql 1
+      expect(
+        ::Collapsium::Support::Methods.wrappers(IncludeNested, :test).size
+      ).to eql 1
     end
 
     it "finds wrappers in PrependNestedWithOwn" do
-      expect(::Collapsium::Support::Methods.wrappers(PrependNestedWithOwn, :test).size).to eql 1
+      expect(
+        ::Collapsium::Support::Methods.wrappers(PrependNestedWithOwn, :test).size
+      ).to eql 1
     end
 
     it "finds wrappers in IncludeNestedWithOwn" do
-      expect(::Collapsium::Support::Methods.wrappers(IncludeNestedWithOwn, :test).size).to eql 1
+      expect(
+        ::Collapsium::Support::Methods.wrappers(IncludeNestedWithOwn, :test).size
+      ).to eql 1
     end
 
     it "does not find wrappers on undecorated Hashes" do
@@ -419,6 +469,5 @@ describe ::Collapsium::Support::Methods do
       expect { tester.loop }.not_to raise_error
       expect(tester.loop).to eql "loop"
     end
-
   end
 end
