@@ -16,6 +16,8 @@ module Collapsium
     ##
     # Functionality for extending the behaviour of Hash methods
     module Methods
+      WRAPPER_HASH = "@__collapsium_methods_wrappers".freeze
+
       ##
       # Given the base module, wraps the given method name in the given block.
       # The block must accept the wrapped_method as the first parameter, followed
@@ -54,8 +56,7 @@ module Collapsium
           return
         end
 
-        # Hack for calling the private method "define_method"
-        def_method.call(method_name) do |*args, &method_block|
+        wrap_method_block = proc do |*args, &method_block|
           # We're trying to prevent loops by maintaining a stack of wrapped
           # method invocations.
           @__collapsium_methods_callstack ||= []
@@ -63,7 +64,7 @@ module Collapsium
           # Our current binding is based on the wrapper block and our own class,
           # as well as the arguments (CRC32).
           require 'zlib'
-          signature = Zlib.crc32(JSON.dump(args))
+          signature = Zlib.crc32(args.to_s)
           the_binding = [wrapper_block.object_id, self.class.object_id, signature]
 
           # We'll either pass the wrapped method to the wrapper block, or invoke
@@ -90,6 +91,16 @@ module Collapsium
 
           next result
         end
+
+        # Hack for calling the private method "define_method"
+        def_method.call(method_name, &wrap_method_block)
+
+        # Register this wrapper with the base
+        base_wrappers = base.instance_variable_get(WRAPPER_HASH)
+        base_wrappers ||= {}
+        base_wrappers[method_name] ||= []
+        base_wrappers[method_name] << wrapper_block
+        base.instance_variable_set(WRAPPER_HASH, base_wrappers)
       end
 
       def resolve_helpers(base, method_name, raise_on_missing)
@@ -107,13 +118,20 @@ module Collapsium
             if raise_on_missing
               raise
             end
-            return base_method, def_method
+            return nil, nil, nil
           end
           def_method = base.method(:define_method)
         else
           # For Objects and Classes, the unbound method will later be bound to
           # the object or class to define the method on.
-          base_method = base.method(method_name.to_s).unbind
+          begin
+            base_method = base.method(method_name.to_s).unbind
+          rescue NameError
+            if raise_on_missing
+              raise
+            end
+            return nil, nil, nil
+          end
           # With regards to method defintion, we only want to define methods
           # for the specific instance (i.e. use :define_singleton_method).
           def_method = base.method(:define_singleton_method)
@@ -123,6 +141,54 @@ module Collapsium
       end
 
       class << self
+
+        ##
+        # Given any base (value, class, module) and a method name, returns the
+        # wrappers defined for the base, in order of definition. If no wrappers
+        # are defined, an empty Array is returned.
+        def wrappers(base, method_name, visited = Set.new)
+          # First, check the instance, then its class for a wrapper. If either of
+          # them succeeds, exit with a result.
+          [base, base.class].each do |item|
+            item_wrappers = item.instance_variable_get(WRAPPER_HASH)
+            if not item_wrappers.nil? and item_wrappers.include?(method_name)
+              return item_wrappers[method_name]
+            end
+          end
+
+          # We add the base and its class to the set of visited items.
+          visited.add(base)
+          visited.add(base.class)
+
+          # If neither of the above contained a wrapper, look at ancestors
+          # recursively.
+          ancestors = nil
+          begin
+            ancestors = base.ancestors
+          rescue NoMethodError
+            ancestors = base.class.ancestors
+          end
+          ancestors = ancestors - Object.ancestors - [Object, Class, Module]
+
+          ancestors.each do |ancestor|
+            # Skip an visited item...
+            if visited.include?(ancestor)
+              next
+            end
+            visited.add(ancestor)
+
+            # ... and recurse into unvisited ones
+            anc_wrappers = wrappers(ancestor, method_name, visited)
+            if not anc_wrappers.empty?
+              return anc_wrappers
+            end
+          end
+
+          # Return an empty list if we couldn't find anything.
+          return []
+        end
+
+
         # Given an input array, return repeated sequences from the array. It's
         # used in loop detection.
         def repeated(array)
