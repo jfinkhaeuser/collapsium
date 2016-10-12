@@ -60,6 +60,25 @@ module NonRaising
   end # class << self
 end # module NonRaising
 
+module Looping
+  class << self
+    include ::Collapsium::Support::Methods
+
+    def extended(base)
+      prepended(base)
+    end
+
+    def prepended(base)
+      wrap_method(base, :loop, raise_on_missing: false) do |super_method, *args, &block|
+        super_method.receiver.loop
+      end
+    end
+  end # class << self
+end # module NonRaising
+
+class EmptyClass
+end
+
 class FirstThenSecond
   def calling_test
     return "first_then_second"
@@ -331,9 +350,6 @@ describe ::Collapsium::Support::Methods do
       end
 
       context "objects" do
-        class EmptyClass
-        end
-
         it "fails if there is no method to wrap" do
           expect do
             tester = EmptyClass.new
@@ -390,5 +406,19 @@ describe ::Collapsium::Support::Methods do
   end
 
   context "loop detection" do
+    class LoopClass
+      def loop
+        return "loop"
+      end
+    end
+
+    it "prevents loops" do
+      tester = LoopClass.new
+      tester.extend(Looping)
+
+      expect { tester.loop }.not_to raise_error
+      expect(tester.loop).to eql "loop"
+    end
+
   end
 end
