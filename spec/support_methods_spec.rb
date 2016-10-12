@@ -43,6 +43,10 @@ module NonRaising
   class << self
     include ::Collapsium::Support::Methods
 
+    def extended(base)
+      prepended(base)
+    end
+
     def prepended(base)
       wrap_method(base, :calling_test, raise_on_missing: false) do |super_method, *args, &block|
         result = super_method.call(*args, &block)
