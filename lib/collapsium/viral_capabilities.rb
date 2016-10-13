@@ -8,6 +8,7 @@
 #
 
 require 'collapsium/support/hash_methods'
+require 'collapsium/support/array_methods'
 require 'collapsium/support/methods'
 
 module Collapsium
@@ -18,16 +19,37 @@ module Collapsium
   # Virality is ensured by changing the return value of various methods; if it
   # is derived from Hash, it is attempted to convert it to the including class.
   #
-  # The module uses HashMethods to decide which methods to make viral in this
-  # manner.
+  # The module uses HashMethods and ArrayMethods to decide which methods to make
+  # viral in this manner.
   #
   # There are two ways for using this module:
   # a) in a `Class`, either include, prepend or extend it.
   # b) in a `Module`, *extend* this module. The resulting module can be included,
   #    prepended or extended in a `Class` again.
   module ViralCapabilities
+    # The default ancestor values for the accessors in ViralAncestorTypes
+    # are defined here. They're also used for generating functions that should
+    # provide the best ancestor class.
+    DEFAULT_ANCESTORS = {
+      hash_ancestor: Hash,
+      array_ancestor: Array,
+    }.freeze
 
-    include ::Collapsium::Support::HashMethods
+    ##
+    # Any Object (Class, Module) that's enhanced with ViralCapabilities will at
+    # least be extended with a module defining its Hash and Array ancestors.
+    module ViralAncestorTypes
+      def hash_ancestor
+        return @hash_ancestor || DEFAULT_ANCESTORS[:hash_ancestor]
+      end
+      attr_writer :hash_ancestor
+
+      def array_ancestor
+        return @array_ancestor || DEFAULT_ANCESTORS[:array_ancestor]
+      end
+      attr_writer :array_ancestor
+    end
+
     include ::Collapsium::Support::Methods
 
     ##
@@ -45,7 +67,6 @@ module Collapsium
     end
 
     class << self
-      include ::Collapsium::Support::HashMethods
       include ::Collapsium::Support::Methods
 
       ##
@@ -62,6 +83,16 @@ module Collapsium
         enhance(base)
       end
 
+      # We want to wrap methods for Arrays and Hashes alike
+      READ_METHODS = (
+        ::Collapsium::Support::HashMethods::READ_METHODS \
+        + ::Collapsium::Support::ArrayMethods::READ_METHODS
+      ).uniq.freeze
+      WRITE_METHODS = (
+        ::Collapsium::Support::HashMethods::WRITE_METHODS \
+        + ::Collapsium::Support::ArrayMethods::WRITE_METHODS
+      ).uniq.freeze
+
       ##
       # Enhance the base by wrapping all READ_METHODS and WRITE_METHODS in
       # a wrapper that uses enhance_hash_value to, well, enhance Hash results.
@@ -69,16 +100,21 @@ module Collapsium
         # rubocop:disable Style/ClassVars
         @@write_block ||= proc do |wrapped_method, *args, &block|
           arg_copy = args.map do |arg|
-            enhance_hash_value(wrapped_method.receiver, arg)
+            enhance_value(wrapped_method.receiver, arg)
           end
           result = wrapped_method.call(*arg_copy, &block)
-          next enhance_hash_value(wrapped_method.receiver, result)
+          next enhance_value(wrapped_method.receiver, result)
         end
         @@read_block ||= proc do |wrapped_method, *args, &block|
           result = wrapped_method.call(*args, &block)
-          next enhance_hash_value(wrapped_method.receiver, result)
+          next enhance_value(wrapped_method.receiver, result)
         end
         # rubocop:enable Style/ClassVars
+
+        # Minimally: add the ancestor functions to classes
+        if base.is_a? Class
+          base.include(ViralAncestorTypes)
+        end
 
         READ_METHODS.each do |method_name|
           wrap_method(base, method_name, raise_on_missing: false, &@@read_block)
@@ -90,60 +126,171 @@ module Collapsium
       end
 
       ##
-      # Given an outer Hash and a value, enhance Hash values so that they have
-      # the same capabilities as the outer Hash. Non-Hash values are returned
-      # unchanged.
-      def enhance_hash_value(outer_hash, value)
-        # If the value is not a Hash, we don't do anything.
-        if not value.is_a? Hash
-          return value
+      # Enhance Hash or Array value
+      def enhance_value(parent, value)
+        if value.is_a? Hash
+          value = enhance_hash_value(parent, value)
+        elsif value.is_a? Array
+          value = enhance_array_value(parent, value)
         end
 
-        # If the value is a different type of Hash from ourself, we want to
-        # create an instance of our own type with the same values.
-        # XXX: DO NOT replace the loop with :merge! or :merge - those are
-        #      potentially wrapped write functions, leading to an infinite
-        #      recursion.
-        if value.class != outer_hash.class
-          new_value = outer_hash.class.new
+        # It's possible that the value is a Hash or an Array, but there's no
+        # ancestor from which capabilities can be copied. We can find out by
+        # checking whether any wrappers are defined for it.
+        needs_wrapping = true
+        READ_METHODS.each do |method_name|
+          wrappers = ::Collapsium::Support::Methods.wrappers(value, method_name)
+          # rubocop:disable Style/Next
+          if wrappers.include?(@@read_block)
+            # all done
+            needs_wrapping = false
+            break
+          end
+          # rubocop:enable Style/Next
+        end
 
-          value.each do |key, inner_val|
-            if not inner_val.is_a? Hash
-              new_value[key] = inner_val
+        # If we have a Hash or Array value that needs enhancing still, let's
+        # do that.
+        if needs_wrapping and (value.is_a? Array or value.is_a? Hash)
+          enhance(value)
+        end
+
+        return value
+      end
+
+      def enhance_array_value(parent, value)
+        # If the value is not of the best ancestor type, make sure it becomes
+        # that type.
+        # XXX: DO NOT replace the loop with a simpler function - it could lead
+        #      to infinite recursion!
+        enc_class = array_ancestor(parent, value)
+        if value.class != enc_class
+          new_value = enc_class.new
+          value.each do |item|
+            if not item.is_a? Hash and not item.is_a? Array
+              new_value << item
               next
             end
 
-            if inner_val.class == outer_hash.class
-              new_value[key] = inner_val
-              next
-            end
-
-            new_inner_value = outer_hash.class.new
-            new_inner_value.merge!(inner_val)
-            new_value[key] = new_inner_value
+            new_item = enhance_value(value, item)
+            new_value << new_item
           end
           value = new_value
         end
 
-        # Next, we want to extend all the modules in self. That might be a
-        # no-op due to the above block, but not necessarily so.
-        value_mods = (class << value; self end).included_modules
-        own_mods = (class << outer_hash; self end).included_modules
-        (own_mods - value_mods).each do |mod|
-          value.extend(mod)
+        # Copy all modules from the parent to the value
+        copy_mods(parent, value)
+
+        # Set appropriate ancestors on the value
+        set_ancestors(parent, value)
+
+        return call_virality(parent, value)
+      end
+
+      ##
+      # Given an outer Hash and a value, enhance Hash values so that they have
+      # the same capabilities as the outer Hash. Non-Hash values are returned
+      # unchanged.
+      def enhance_hash_value(parent, value)
+        # If the value is not of the best ancestor type, make sure it becomes
+        # that type.
+        # XXX: DO NOT replace the loop with :merge! or :merge - those are
+        #      potentially wrapped write functions, leading to an infinite
+        #      recursion.
+        enc_class = hash_ancestor(parent, value)
+
+        if value.class != enc_class
+          new_value = enc_class.new
+
+          value.each do |key, item|
+            if not item.is_a? Hash and not item.is_a? Array
+              new_value[key] = item
+              next
+            end
+
+            new_item = enhance_value(value, item)
+            new_value[key] = new_item
+          end
+          value = new_value
         end
+
+        # Copy all modules from the parent to the value
+        copy_mods(parent, value)
 
         # If we have a default_proc and the value doesn't, we want to use our
         # own. This *can* override a perfectly fine default_proc with our own,
         # which might suck.
-        value.default_proc ||= outer_hash.default_proc
+        if parent.respond_to?(:default_proc)
+          # FIXME: need to inherit this for arrays, too
+          value.default_proc ||= parent.default_proc
+        end
 
-        # Finally, the class can define its own virality function.
-        if outer_hash.respond_to?(:virality)
-          value = outer_hash.virality(value)
+        # Set appropriate ancestors on the value
+        set_ancestors(parent, value)
+
+        return call_virality(parent, value)
+      end
+
+      def copy_mods(parent, value)
+        # We want to extend all the modules in self. That might be a
+        # no-op due to the above block, but not necessarily so.
+        value_mods = (class << value; self end).included_modules
+        parent_mods = (class << parent; self end).included_modules
+        parent_mods << ViralAncestorTypes
+        mods_to_copy = parent_mods - value_mods
+        mods_to_copy.each do |mod|
+          value.extend(mod)
+        end
+      end
+
+      def call_virality(parent, value)
+        # The parent class can define its own virality function.
+        if parent.respond_to?(:virality)
+          value = parent.virality(value)
         end
 
         return value
+      end
+
+      DEFAULT_ANCESTORS.each do |getter, default|
+        define_method(getter) do |parent, value|
+          [value, parent].each do |receiver|
+            # rubocop:disable Lint/HandleExceptions
+            begin
+              klass = receiver.send(getter)
+              if klass != default
+                return klass
+              end
+            rescue NoMethodError
+            end
+            # rubocop:enable Lint/HandleExceptions
+          end
+
+          [value, parent].each do |receiver|
+            if receiver.is_a? default
+              return receiver.class
+            end
+          end
+
+          return default
+        end
+      end
+
+      def set_ancestors(parent, value)
+        DEFAULT_ANCESTORS.each do |getter, default|
+          setter = "#{getter}=".to_sym
+
+          ancestor = nil
+          if parent.is_a? default
+            ancestor = parent.class
+          elsif parent.respond_to?(getter)
+            ancestor = parent.send(getter)
+          else
+            ancestor = default
+          end
+
+          value.send(setter, ancestor)
+        end
       end
     end
 

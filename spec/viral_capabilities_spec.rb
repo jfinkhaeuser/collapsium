@@ -20,6 +20,10 @@ class ExtendedHash < Hash
   extend TestModule
 end
 
+class IncludedArray < Array
+  include TestModule
+end
+
 class DirectPrependedHash < Hash
   prepend ::Collapsium::ViralCapabilities
 
@@ -80,7 +84,7 @@ describe ::Collapsium::ViralCapabilities do
   context PrependedHash do
     let(:tester) do
       x = PrependedHash.new
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     before do
@@ -89,14 +93,15 @@ describe ::Collapsium::ViralCapabilities do
 
     it "replicates itself" do
       expect(tester[:foo].respond_to?(:find_me)).to be_truthy
-      expect(tester[:foo][:bar].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0].class).to eql PrependedHash
     end
   end
 
   context IncludedHash do
     let(:tester) do
       x = IncludedHash.new
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     before do
@@ -105,14 +110,32 @@ describe ::Collapsium::ViralCapabilities do
 
     it "replicates itself" do
       expect(tester[:foo].respond_to?(:find_me)).to be_truthy
-      expect(tester[:foo][:bar].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0].class).to eql IncludedHash
+    end
+  end
+
+  context IncludedArray do
+    let(:tester) do
+      x = IncludedArray.new
+      x << { foo: { bar: [{ baz: true }, 42] } }
+    end
+
+    before do
+      expect(tester.respond_to?(:find_me)).to be_truthy
+    end
+
+    it "replicates itself" do
+      expect(tester[0][:foo].respond_to?(:find_me)).to be_truthy
+      expect(tester[0][:foo][:bar][0].respond_to?(:find_me)).to be_truthy
+      expect(tester[0][:foo][:bar].class).to eql IncludedArray
     end
   end
 
   context ExtendedHash do
     let(:tester) do
       x = ExtendedHash.new
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     it "does not receive viral capabilities" do
@@ -123,7 +146,7 @@ describe ::Collapsium::ViralCapabilities do
   context DirectPrependedHash do
     let(:tester) do
       x = DirectPrependedHash.new
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     before do
@@ -138,7 +161,7 @@ describe ::Collapsium::ViralCapabilities do
   context DirectIncludedHash do
     let(:tester) do
       x = DirectIncludedHash.new
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     before do
@@ -147,14 +170,14 @@ describe ::Collapsium::ViralCapabilities do
 
     it "replicates itself" do
       expect(tester[:foo].respond_to?(:find_me)).to be_truthy
-      expect(tester[:foo][:bar].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0].respond_to?(:find_me)).to be_truthy
     end
   end
 
   context DirectExtendedHash do
     let(:tester) do
       x = DirectExtendedHash.new
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     before do
@@ -163,7 +186,7 @@ describe ::Collapsium::ViralCapabilities do
 
     it "replicates itself" do
       expect(tester[:foo].respond_to?(:find_me)).to be_truthy
-      expect(tester[:foo][:bar].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0].respond_to?(:find_me)).to be_truthy
     end
   end
 
@@ -186,7 +209,7 @@ describe ::Collapsium::ViralCapabilities do
     let(:tester) do
       x = {}
       x.extend(TestModule)
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: { quux: true } }] })
     end
 
     before do
@@ -195,7 +218,7 @@ describe ::Collapsium::ViralCapabilities do
 
     it "replicates itself" do
       expect(tester[:foo].respond_to?(:find_me)).to be_truthy
-      expect(tester[:foo][:bar].respond_to?(:find_me)).to be_truthy
+      expect(tester[:foo][:bar][0][:baz].respond_to?(:find_me)).to be_truthy
     end
   end
 
@@ -203,7 +226,7 @@ describe ::Collapsium::ViralCapabilities do
     let(:tester) do
       x = {}
       x.extend(ViralityModule)
-      x.merge!(foo: { bar: { baz: true } })
+      x.merge!(foo: { bar: [{ baz: true }] })
     end
 
     before do
@@ -214,7 +237,7 @@ describe ::Collapsium::ViralCapabilities do
       # Just check that the module went viral; it doesn't check the viral
       # enhancements work.
       expect(tester[:foo].respond_to?(:virality)).to be_truthy
-      expect(tester[:foo][:bar].respond_to?(:virality)).to be_truthy
+      expect(tester[:foo][:bar][0].respond_to?(:virality)).to be_truthy
 
       # Now also check the viral enhancements. In this case, :delete becomes a
       # no-op.
@@ -226,19 +249,23 @@ describe ::Collapsium::ViralCapabilities do
   end
 
   context "values already of the same class" do
+    # rubocop:disable Performance/RedundantMerge
     let(:innermost) do
       innermost = PrependedHash.new
       innermost.merge!(quux: true)
+      innermost
     end
 
     let(:inner) do
       inner = {}
       inner.merge!(foo: true, bar: innermost)
+      inner
     end
 
     let(:tester) do
       PrependedHash.new
     end
+    # rubocop:enable Performance/RedundantMerge
 
     it "peforms a no-op when adding the right class" do
       tester[:bar] = inner
