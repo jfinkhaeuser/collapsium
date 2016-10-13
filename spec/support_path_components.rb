@@ -6,7 +6,8 @@ describe ::Collapsium::Support::PathComponents do
 
   context "#separator" do
     it "defaults to DEFAULT_SEPARATOR" do
-      expect(tester.separator).to eql ::Collapsium::Support::PathComponents::DEFAULT_SEPARATOR
+      expect(tester.separator).to eql \
+        ::Collapsium::Support::PathComponents::DEFAULT_SEPARATOR
     end
 
     it "can be set" do
@@ -24,7 +25,7 @@ describe ::Collapsium::Support::PathComponents do
 
     it "can be set, but normalizes its value" do
       expect { tester.path_prefix = 'foo' }.not_to raise_error
-      expect(tester.path_prefix).to eql '.foo'  # DEFAULT_SEPARATOR
+      expect(tester.path_prefix).to eql '.foo' # == '.' + DEFAULT_SEPARATOR
 
       tester.path_prefix = ''
     end
