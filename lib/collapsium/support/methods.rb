@@ -141,7 +141,6 @@ module Collapsium
       end
 
       class << self
-
         ##
         # Given any base (value, class, module) and a method name, returns the
         # wrappers defined for the base, in order of definition. If no wrappers
@@ -187,7 +186,6 @@ module Collapsium
           # Return an empty list if we couldn't find anything.
           return []
         end
-
 
         # Given an input array, return repeated sequences from the array. It's
         # used in loop detection.
