@@ -37,9 +37,14 @@ module Collapsium
       include ::Collapsium::Support::Methods
 
       # We want to wrap methods for Arrays and Hashes alike
-      READ_METHODS = (::Collapsium::Support::HashMethods::READ_METHODS + ::Collapsium::Support::ArrayMethods::READ_METHODS).uniq.freeze
-      WRITE_METHODS = (::Collapsium::Support::HashMethods::WRITE_METHODS + ::Collapsium::Support::ArrayMethods::WRITE_METHODS).uniq.freeze
-
+      READ_METHODS = (
+        ::Collapsium::Support::HashMethods::READ_METHODS \
+        + ::Collapsium::Support::ArrayMethods::READ_METHODS
+      ).uniq.freeze
+      WRITE_METHODS = (
+        ::Collapsium::Support::HashMethods::WRITE_METHODS \
+        + ::Collapsium::Support::ArrayMethods::WRITE_METHODS
+      ).uniq.freeze
 
       ##
       # Returns a proc for either read or write access. Procs for write

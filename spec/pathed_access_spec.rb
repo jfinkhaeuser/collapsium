@@ -203,5 +203,4 @@ describe ::Collapsium::PathedAccess do
       expect(@tester['foo.bar.baz']).to eql 'quux'
     end
   end
-
 end
