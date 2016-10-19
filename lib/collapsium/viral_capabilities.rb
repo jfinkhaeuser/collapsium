@@ -275,7 +275,12 @@ module Collapsium
             end
           end
 
+          # The default shouldn't really be reached, because it only applies
+          # if neither parent nor value are derived from default, and then
+          # this functions shouldn't even be called.
+          # :nocov:
           return default
+          # :nocov:
         end
       end
 
