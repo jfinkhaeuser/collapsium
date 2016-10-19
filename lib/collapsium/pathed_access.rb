@@ -34,8 +34,12 @@ module Collapsium
     # If the module is included, extended or prepended in a class, it'll
     # wrap accessor methods.
     class << self
-      include ::Collapsium::Support::HashMethods
       include ::Collapsium::Support::Methods
+
+      # We want to wrap methods for Arrays and Hashes alike
+      READ_METHODS = (::Collapsium::Support::HashMethods::READ_METHODS + ::Collapsium::Support::ArrayMethods::READ_METHODS).uniq.freeze
+      WRITE_METHODS = (::Collapsium::Support::HashMethods::WRITE_METHODS + ::Collapsium::Support::ArrayMethods::WRITE_METHODS).uniq.freeze
+
 
       ##
       # Returns a proc for either read or write access. Procs for write
@@ -88,6 +92,10 @@ module Collapsium
             the_args[0] = components.last
           end
 
+          if receiver.is_a? Array
+            the_args[0] = the_args[0].to_i
+          end
+
           # Then we can continue with that method.
           next meth.call(*the_args, &block)
         end # proc
@@ -114,11 +122,11 @@ module Collapsium
         base.extend(ViralCapabilities)
 
         # Wrap all accessor functions to deal with paths
-        KEYED_READ_METHODS.each do |method|
-          wrap_method(base, method, &PATHED_ACCESS_READER)
+        READ_METHODS.each do |method|
+          wrap_method(base, method, raise_on_missing: false, &PATHED_ACCESS_READER)
         end
-        KEYED_WRITE_METHODS.each do |method|
-          wrap_method(base, method, &PATHED_ACCESS_WRITER)
+        WRITE_METHODS.each do |method|
+          wrap_method(base, method, raise_on_missing: false, &PATHED_ACCESS_WRITER)
         end
       end
 
