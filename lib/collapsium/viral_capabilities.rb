@@ -254,6 +254,7 @@ module Collapsium
 
       DEFAULT_ANCESTORS.each do |getter, default|
         define_method(getter) do |parent, value|
+          # We value (haha) the value's stored ancestor over the parent's...
           [value, parent].each do |receiver|
             # rubocop:disable Lint/HandleExceptions
             begin
@@ -266,7 +267,9 @@ module Collapsium
             # rubocop:enable Lint/HandleExceptions
           end
 
-          [value, parent].each do |receiver|
+          # ... but if neither yield satisfying results, we value the parent's
+          # class over the value's. This way parents can propagate their class.
+          [parent, value].each do |receiver|
             if receiver.is_a? default
               return receiver.class
             end
