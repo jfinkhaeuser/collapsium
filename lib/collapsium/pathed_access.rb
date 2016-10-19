@@ -38,12 +38,12 @@ module Collapsium
 
       # We want to wrap methods for Arrays and Hashes alike
       READ_METHODS = (
-        ::Collapsium::Support::HashMethods::READ_METHODS \
-        + ::Collapsium::Support::ArrayMethods::READ_METHODS
+        ::Collapsium::Support::HashMethods::KEYED_READ_METHODS \
+        + ::Collapsium::Support::ArrayMethods::INDEXED_READ_METHODS
       ).uniq.freeze
       WRITE_METHODS = (
-        ::Collapsium::Support::HashMethods::WRITE_METHODS \
-        + ::Collapsium::Support::ArrayMethods::WRITE_METHODS
+        ::Collapsium::Support::HashMethods::KEYED_WRITE_METHODS \
+        + ::Collapsium::Support::ArrayMethods::INDEXED_WRITE_METHODS
       ).uniq.freeze
 
       ##
