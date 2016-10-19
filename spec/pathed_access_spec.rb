@@ -5,6 +5,10 @@ class PathedHash < Hash
   prepend ::Collapsium::PathedAccess
 end
 
+class IncludedPathedHash < Hash
+  include ::Collapsium::PathedAccess
+end
+
 describe ::Collapsium::PathedAccess do
   before :each do
     @tester = {}
@@ -157,4 +161,47 @@ describe ::Collapsium::PathedAccess do
       expect(test_hash["foo.bar"]).to eql 42
     end
   end
+
+  context IncludedPathedHash do
+    let(:test_hash) { IncludedPathedHash.new }
+
+    it "can write recursively" do
+      test_hash["foo.bar"] = 42
+      expect(test_hash["foo.bar"]).to eql 42
+    end
+  end
+
+  context "array entries" do
+    before do
+      @tester['foo'] = {
+        'bar' => [
+          { 'baz1' => 'quux1' },
+          { 'baz2' => 'quux2' },
+        ]
+      }
+    end
+
+    it "resolved with pathed access" do
+      expect(@tester['foo.bar.0.baz1']).to eql 'quux1'
+      expect(@tester['foo.bar.1.baz2']).to eql 'quux2'
+    end
+  end
+
+  context "nested symbol keys" do
+    before do
+      @tester['foo'] = {
+        bar: { 'baz' => 'quux' },
+      }
+    end
+
+    it "resolve with pathed access & indifferent access" do
+      # This should be nil - we don't use indifferent access yet.
+      expect(@tester['foo.bar.baz']).to be_nil
+
+      # With indifferent access, pathed access must work
+      @tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
+      expect(@tester['foo.bar.baz']).to eql 'quux'
+    end
+  end
+
 end
