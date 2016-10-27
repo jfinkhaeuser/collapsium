@@ -39,6 +39,7 @@ module Collapsium
     # wrap accessor methods.
     class << self
       include ::Collapsium::Support::HashMethods
+      include ::Collapsium::Support::ArrayMethods
       include ::Collapsium::Support::Methods
 
       ##
@@ -62,74 +63,11 @@ module Collapsium
         # supported, we'll try environment variables of the path, starting
         # with the full qualified path and ending with just the last key
         # component.
-        env_keys = []
-        if receiver.respond_to?(:path_prefix)
-
-          # If we have a prefix, use it.
-          components = []
-          if not receiver.path_prefix.nil?
-            components += receiver.path_components(receiver.path_prefix)
-          end
-
-          # The key has its own components. If the key components and prefix
-          # components overlap (it happens), ignore the duplication.
-          key_comps = receiver.path_components(key.to_s)
-          if key_comps.first == components.last
-            components.pop
-          end
-          components += key_comps
-
-          # Start with most qualified, shifting off the first component
-          # until we reach just the last component.
-          loop do
-            path = receiver.normalize_path(components)
-            env_keys << path
-            components.shift
-            if components.empty?
-              break
-            end
-          end
-        else
-          env_keys = [key.to_s]
-        end
-        env_keys.map! { |k| receiver.key_to_env(k) }
-        env_keys.select! { |k| not k.empty? }
-        env_keys.uniq!
+        env_keys = EnvironmentOverride.environment_variables_for_key(receiver, key)
 
         # When we have the keys (in priority order), try to see if the
         # environment yields something useful.
-        value = nil
-        env_keys.each do |env_key|
-          # Grab the environment value; skip if there's nothing there.
-          env_value = ENV[env_key]
-          if env_value.nil?
-            next
-          end
-
-          # If the environment variable parses as JSON, that's great, we'll use
-          # the parsed result. Otherwise use it as a string.
-          require 'json'
-          # rubocop:disable Lint/HandleExceptions
-          parsed = env_value
-          begin
-            parsed = JSON.parse(env_value)
-          rescue JSON::ParserError
-            # Do nothing. We just use the env_value verbatim.
-          end
-          # rubocop:enable Lint/HandleExceptions
-
-          # Excellent, we've got an environment variable. Only use it if it
-          # changes something, though. We'll temporarily unset the environment
-          # variable while fetching the old value.
-          ENV.delete(env_key)
-          old_value = receiver[key]
-          ENV[env_key] = env_value # not the parsed value!
-
-          if parsed != old_value
-            value = parsed
-          end
-          break
-        end
+        value = EnvironmentOverride.override_value(env_keys, receiver, key)
 
         if not value.nil?
           # We can't just return the value, because that doesn't respect the
@@ -167,24 +105,99 @@ module Collapsium
         base.extend(ViralCapabilities)
 
         # Wrap read accessor functions to deal with paths
-        KEYED_READ_METHODS.each do |method|
-          wrap_method(base, method, &ENV_ACCESS_READER)
+        (INDEXED_READ_METHODS + KEYED_READ_METHODS).each do |method|
+          wrap_method(base, method, raise_on_missing: false, &ENV_ACCESS_READER)
         end
       end
+
+      def environment_variables_for_key(receiver, key)
+        env_keys = []
+        if receiver.respond_to?(:path_prefix)
+
+          # If we have a prefix, use it.
+          components = []
+          if not receiver.path_prefix.nil?
+            components += receiver.path_components(receiver.path_prefix)
+          end
+
+          # The key has its own components. If the key components and prefix
+          # components overlap (it happens), ignore the duplication.
+          key_comps = receiver.path_components(key.to_s)
+          if key_comps.first == components.last
+            components.pop
+          end
+          components += key_comps
+
+          # Start with most qualified, shifting off the first component
+          # until we reach just the last component.
+          loop do
+            path = receiver.normalize_path(components)
+            env_keys << path
+            components.shift
+            if components.empty?
+              break
+            end
+          end
+        else
+          env_keys = [key.to_s]
+        end
+        env_keys.map! { |k| key_to_env(k) }
+        env_keys.select! { |k| not k.empty? }
+        env_keys.uniq!
+
+        return env_keys
+      end
+
+      def override_value(variables, receiver, key)
+        value = nil
+        variables.each do |env_key|
+          # Grab the environment value; skip if there's nothing there.
+          env_value = ENV[env_key]
+          if env_value.nil?
+            next
+          end
+
+          # If the environment variable parses as JSON, that's great, we'll use
+          # the parsed result. Otherwise use it as a string.
+          require 'json'
+          # rubocop:disable Lint/HandleExceptions
+          parsed = env_value
+          begin
+            parsed = JSON.parse(env_value)
+          rescue JSON::ParserError
+            # Do nothing. We just use the env_value verbatim.
+          end
+          # rubocop:enable Lint/HandleExceptions
+
+          # Excellent, we've got an environment variable. Only use it if it
+          # changes something, though. We'll temporarily unset the environment
+          # variable while fetching the old value.
+          ENV.delete(env_key)
+          old_value = receiver[key]
+          ENV[env_key] = env_value # not the parsed value!
+
+          if parsed != old_value
+            value = parsed
+          end
+          break
+        end
+
+        return value
+      end
+
+      def key_to_env(key)
+        # First, convert to upper case
+        env_key = key.upcase
+
+        # Next, replace non-alphanumeric characters to underscore. This also
+        # collapses them into a single undescore.
+        env_key.gsub!(/[^[:alnum:]]+/, '_')
+
+        # Strip leading and trailing underscores.
+        env_key.gsub!(/^_*(.*?)_*$/, '\1')
+
+        return env_key
+      end
     end # class << self
-
-    def key_to_env(key)
-      # First, convert to upper case
-      env_key = key.upcase
-
-      # Next, replace non-alphanumeric characters to underscore. This also
-      # collapses them into a single undescore.
-      env_key.gsub!(/[^[:alnum:]]+/, '_')
-
-      # Strip leading and trailing underscores.
-      env_key.gsub!(/^_*(.*?)_*$/, '\1')
-
-      return env_key
-    end
   end # module EnvironmentOverride
 end # module Collapsium

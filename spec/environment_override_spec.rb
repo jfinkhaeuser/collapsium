@@ -18,22 +18,29 @@ describe ::Collapsium::EnvironmentOverride do
 
   context "environment variable name" do
     it "upcases keys" do
-      expect(@tester.key_to_env("foo")).to eql "FOO"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("foo")).to eql "FOO"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("f0o")).to eql "F0O"
     end
 
     it "replaces non-alphanumeric characters with underscores" do
-      expect(@tester.key_to_env("foo!bar")).to eql "FOO_BAR"
-      expect(@tester.key_to_env("foo.bar")).to eql "FOO_BAR"
-      expect(@tester.key_to_env("foo@bar")).to eql "FOO_BAR"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("foo!bar")).to \
+        eql "FOO_BAR"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("foo.bar")).to \
+        eql "FOO_BAR"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("foo@bar")).to \
+        eql "FOO_BAR"
     end
 
     it "collapses multiple underscores into one" do
-      expect(@tester.key_to_env("foo!_@bar")).to eql "FOO_BAR"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("foo!_@bar")).to \
+        eql "FOO_BAR"
     end
 
     it "strips leading and trailing underscores" do
-      expect(@tester.key_to_env(".foo@bar")).to eql "FOO_BAR"
-      expect(@tester.key_to_env("foo@bar_")).to eql "FOO_BAR"
+      expect(::Collapsium::EnvironmentOverride.key_to_env(".foo@bar")).to \
+        eql "FOO_BAR"
+      expect(::Collapsium::EnvironmentOverride.key_to_env("foo@bar_")).to \
+        eql "FOO_BAR"
     end
   end
 
@@ -46,9 +53,9 @@ describe ::Collapsium::EnvironmentOverride do
     end
 
     it "inherits environment override" do
-      expect(@tester["foo"]["bar"].is_a?(Fixnum)).to be_truthy
+      expect(@tester["foo"]["bar"].is_a?(Integer)).to be_truthy
       ENV["BAR"] = "test"
-      expect(@tester["foo"]["bar"].is_a?(Fixnum)).to be_falsy
+      expect(@tester["foo"]["bar"].is_a?(Integer)).to be_falsy
       expect(@tester["foo"]["bar"]).to eql "test"
     end
 
@@ -74,12 +81,18 @@ describe ::Collapsium::EnvironmentOverride do
 
   context "with PathedAccess" do
     before :each do
-      @tester = { "foo" => { "bar" => 42 } }
+      @tester = {
+        "foo" => {
+          "bar" => 42
+        },
+        "baz" => [{ "quux" => 123 }]
+      }
       @tester.extend(::Collapsium::PathedAccess)
       @tester.extend(::Collapsium::EnvironmentOverride)
       ENV.delete("FOO")
       ENV.delete("BAR")
       ENV.delete("FOO_BAR")
+      ENV.delete("BAZ_0_QUUX")
     end
 
     it "overrides first-order keys" do
@@ -90,9 +103,9 @@ describe ::Collapsium::EnvironmentOverride do
     end
 
     it "inherits environment override" do
-      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_truthy
+      expect(@tester["foo.bar"].is_a?(Integer)).to be_truthy
       ENV["BAR"] = "test"
-      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_falsy
+      expect(@tester["foo.bar"].is_a?(Integer)).to be_falsy
       expect(@tester["foo.bar"]).to eql "test"
     end
 
@@ -116,26 +129,38 @@ describe ::Collapsium::EnvironmentOverride do
     end
 
     it "overrides from pathed key" do
-      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_truthy
+      expect(@tester["foo.bar"].is_a?(Integer)).to be_truthy
       ENV["FOO_BAR"] = "test"
-      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_falsy
+      expect(@tester["foo.bar"].is_a?(Integer)).to be_falsy
       expect(@tester["foo.bar"]).to eql "test"
     end
 
     it "prefers pathed key over non-pathed key" do
-      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_truthy
+      expect(@tester["foo.bar"].is_a?(Integer)).to be_truthy
       ENV["FOO_BAR"] = "pathed"
       ENV["BAR"] = "simple"
-      expect(@tester["foo.bar"].is_a?(Fixnum)).to be_falsy
+      expect(@tester["foo.bar"].is_a?(Integer)).to be_falsy
       expect(@tester["foo.bar"]).to eql "pathed"
     end
 
     it "prefers pathed key over non-pathed key when using nested values" do
-      expect(@tester["foo"]["bar"].is_a?(Fixnum)).to be_truthy
+      expect(@tester["foo"]["bar"].is_a?(Integer)).to be_truthy
       ENV["FOO_BAR"] = "pathed"
       ENV["BAR"] = "simple"
-      expect(@tester["foo"]["bar"].is_a?(Fixnum)).to be_falsy
+      expect(@tester["foo"]["bar"].is_a?(Integer)).to be_falsy
       expect(@tester["foo"]["bar"]).to eql "pathed"
+    end
+
+    it "can deal with componentized keys" do
+      expect(@tester["foo"]["foo.bar"]).to be_nil
+      ENV["FOO_BAR"] = "pathed"
+      expect(@tester["foo"]["foo.bar"]).to be_nil
+    end
+
+    it "works with arrays" do
+      expect(@tester["baz"][0]["quux"]).to eql 123
+      ENV["BAZ_0_QUUX"] = "override"
+      expect(@tester["baz"][0]["quux"]).to eql "override"
     end
   end
 
