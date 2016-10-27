@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    collapsium (0.4.1)
+    collapsium (0.5.0)
 
 GEM
   remote: https://rubygems.org/
