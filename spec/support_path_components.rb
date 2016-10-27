@@ -20,12 +20,12 @@ describe ::Collapsium::Support::PathComponents do
 
   context "#path_prefix" do
     it "defaults to an empty string" do
-      expect(tester.path_prefix).to eql ''
+      expect(tester.path_prefix).to eql '.' # == DEFAULT_SEPARATOR
     end
 
     it "can be set, but normalizes its value" do
       expect { tester.path_prefix = 'foo' }.not_to raise_error
-      expect(tester.path_prefix).to eql '.foo' # == '.' + DEFAULT_SEPARATOR
+      expect(tester.path_prefix).to eql '.foo' # == DEFAULT_SEPARATOR + 'foo'
 
       tester.path_prefix = ''
     end
@@ -66,6 +66,20 @@ describe ::Collapsium::Support::PathComponents do
 
     it "normalizes an array path" do
       expect(tester.normalize_path(['foo', '', 'bar'])).to eql ".foo.bar"
+    end
+  end
+
+  context "#parent_path" do
+    it "returns the parent of a path" do
+      expect(tester.parent_path(".foo.bar")).to eql ".foo"
+    end
+
+    it "can deal with children of the root" do
+      expect(tester.parent_path(".foo")).to eql "."
+    end
+
+    it "can deal with empty paths" do
+      expect(tester.parent_path("")).to eql "."
     end
   end
 end

@@ -27,7 +27,7 @@ module Collapsium
       end
 
       def path_prefix
-        @path_prefix ||= ''
+        @path_prefix ||= separator
         return @path_prefix
       end
 
@@ -66,6 +66,13 @@ module Collapsium
       # Join path components with the `#separator`.
       def join_path(components)
         return components.join(separator)
+      end
+
+      ##
+      # Get the parent path of the given path.
+      def parent_path(path)
+        components = path_components(normalize_path(path))
+        return normalize_path(components.slice(0, components.length - 1))
       end
 
       ##
