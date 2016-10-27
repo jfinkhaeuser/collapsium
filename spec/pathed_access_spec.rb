@@ -41,8 +41,8 @@ describe ::Collapsium::PathedAccess do
       end
 
       it "defaults to empty String" do
-        expect(@tester.path_prefix).to be_empty
         expect(@tester.path_prefix.class).to eql String
+        expect(@tester.path_prefix).to eql '.' # separator
       end
 
       it "can be set" do
@@ -52,6 +52,31 @@ describe ::Collapsium::PathedAccess do
       it "normalizes when set" do
         @tester.path_prefix = "foo..bar..baz.."
         expect(@tester.path_prefix).to eql ".foo.bar.baz"
+      end
+
+      it "has the correct path for each value" do
+        @tester.merge!(
+            foo: {
+              first: 1, second: 2,
+              inner: { x: 1 },
+            },
+            bar: {
+              baz: 42, quux: 123,
+              inner: { x: 1 },
+            },
+            baz: [{ inner: { x: 1 } }],
+            "foo.bar" => 123,
+            "pathed.key" => 321
+        )
+
+        expect(@tester.path_prefix).to eql "."
+        expect(@tester[:foo].path_prefix).to eql ".foo"
+        expect(@tester[:foo][:inner].path_prefix).to eql ".foo.inner"
+        expect(@tester[:bar].path_prefix).to eql ".bar"
+        expect(@tester[:bar][:inner].path_prefix).to eql ".bar.inner"
+        expect(@tester[:baz].path_prefix).to eql ".baz"
+        expect(@tester[:baz][0].path_prefix).to eql ".baz.0"
+        expect(@tester[:baz][0][:inner].path_prefix).to eql ".baz.0.inner"
       end
     end
 
@@ -109,6 +134,16 @@ describe ::Collapsium::PathedAccess do
       expect(@tester.fetch("asdf", 42)).to eql 42
       expect(@tester[".does.not.exist"]).to be_nil
       expect(@tester.fetch(".does.not.exist", 42)).to eql 42
+    end
+
+    it "ignores keys containing the path separator" do
+      # Exists at the top level, no "pathed" item exists at the top level,
+      # though.
+      expect(@tester["pathed.key"]).to be_nil
+
+      # "foo" exists at the top level, but it does not contain "bar".
+      # "foo.bar" also exists at the top level.
+      expect(@tester["foo.bar"]).to be_nil
     end
   end
 

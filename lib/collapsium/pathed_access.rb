@@ -75,18 +75,10 @@ module Collapsium
           # Try to find the leaf, based on the given components.
           leaf = recursive_fetch(components, receiver, [], create: write_access)
 
-          # The tricky part is what to do with the leaf.
-          meth = nil
-          if receiver.object_id == leaf.object_id
-            # a) if the leaf and the receiver are identical, then the receiver
-            #    itself was requested, and we really just need to delegate to its
-            #    wrapped_method.
-            meth = wrapped_method
-          else
-            # b) if the leaf is different from the receiver, we want to delegate
-            #    to the leaf.
-            meth = leaf.method(wrapped_method.name)
-          end
+          # Since Methods already contains loop prevention and we may want to
+          # call wrapped methods, let's just find the method to call from the
+          # leaf by name.
+          meth = leaf.method(wrapped_method.name)
 
           # If the first argument was a symbol key, we want to use it verbatim.
           # Otherwise we had pathed access, and only want to pass the last
@@ -97,12 +89,21 @@ module Collapsium
             the_args[0] = components.last
           end
 
-          if receiver.is_a? Array
+          # Array methods we're modifying here are indexed, so the first argument
+          # must be an integer. Let's make it so :)
+          if meth.receiver.is_a? Array
             the_args[0] = the_args[0].to_i
           end
 
           # Then we can continue with that method.
-          next meth.call(*the_args, &block)
+          result = meth.call(*the_args, &block)
+
+          # Sadly, we can't just return the result and be done with it.
+          # We need to tell the virality function (below) what we know about the
+          # result's path prefix, so we enhance the result value explicitly here.
+          result_path = receiver.path_components(receiver.path_prefix)
+          result_path += components
+          next ViralCapabilities.enhance_value(leaf, result, result_path)
         end # proc
       end # create_proc
 
@@ -144,14 +145,6 @@ module Collapsium
         current_path << head
         tail = path.slice(1, path.length)
 
-        # We know that the data has the current path. We also know that thanks to
-        # virality, data will respond to :path_prefix. So we might as well set the
-        # path, as long as it is more specific than what was previously there.
-        current_normalized = data.normalize_path(current_path)
-        if current_normalized.length > data.path_prefix.length
-          data.path_prefix = current_normalized
-        end
-
         # For the leaf element, we do nothing because that's where we want to
         # dispatch to.
         if path.length == 1
@@ -179,12 +172,28 @@ module Collapsium
 
     ##
     # Ensure that all values have their path_prefix set.
-    def virality(value)
-      # If a value was set via a nested Hash, it may not have got its
-      # path_prefix set during storing (i.e. x[key] = { nested: some_hash }
-      # In that case, we do always know that the value's path prefix is the same
-      # as the receiver.
-      value.path_prefix = path_prefix
+    def virality(value, *args)
+      # Figure out what path prefix to set on the value, if any.
+      # Candidates for the prefix are:
+      explicit = args[0] || []
+      from_self = path_components(path_prefix)
+      from_value = path_components(value.path_prefix)
+
+      prefix = []
+      if not explicit.empty?
+        # If we got explicit information, we most likely want to use that.
+        prefix = explicit
+      elsif not from_self.empty?
+        # If we got information from self, that's the next best candidate.
+        prefix = from_self
+      end
+
+      # However, if the value already has a better path prefix than either
+      # of the above, we want to keep that.
+      if prefix.length > from_value.length
+        value.path_prefix = normalize_path(prefix)
+      end
+
       return value
     end
 
