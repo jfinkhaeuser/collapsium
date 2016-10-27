@@ -114,7 +114,7 @@ module Collapsium
 
         # Minimally: add the ancestor functions to classes
         if base.is_a? Class
-          base.include(ViralAncestorTypes)
+          base.extend(ViralAncestorTypes)
         end
 
         READ_METHODS.each do |method_name|
