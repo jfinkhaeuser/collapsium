@@ -91,7 +91,7 @@ module Collapsium
 
           # Array methods we're modifying here are indexed, so the first argument
           # must be an integer. Let's make it so :)
-          if meth.receiver.is_a? Array
+          if leaf.is_a? Array
             the_args[0] = the_args[0].to_i
           end
 

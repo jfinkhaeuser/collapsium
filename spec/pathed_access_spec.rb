@@ -186,6 +186,20 @@ describe ::Collapsium::PathedAccess do
       expect(@tester['foo.bar']).to eql 123
       expect(@tester['foo.baz']).to eql 'quux'
     end
+
+    it "doesn't break #path_prefix" do
+      @tester[:foo] = {
+        bar: {
+          baz: 123,
+        }
+      }
+      @tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
+
+      expect(@tester[:foo].path_prefix).to eql ".foo"
+      expect(@tester["foo"].path_prefix).to eql ".foo"
+      expect(@tester[:foo][:bar].path_prefix).to eql ".foo.bar"
+      expect(@tester["foo.bar"].path_prefix).to eql ".foo.bar"
+    end
   end
 
   context PathedHash do
