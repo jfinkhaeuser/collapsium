@@ -52,7 +52,7 @@ DEPENDENCIES
   bundler (~> 1.12)
   codeclimate-test-reporter
   collapsium!
-  rake (~> 11.2)
+  rake (~> 11.3)
   rspec (~> 3.5)
   rubocop (~> 0.44)
   simplecov (~> 0.12)
