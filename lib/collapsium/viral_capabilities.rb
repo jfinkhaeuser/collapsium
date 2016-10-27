@@ -95,7 +95,8 @@ module Collapsium
 
       ##
       # Enhance the base by wrapping all READ_METHODS and WRITE_METHODS in
-      # a wrapper that uses enhance_hash_value to, well, enhance Hash results.
+      # a wrapper that uses enhance_value to, well, enhance Hash and Array
+      # results.
       def enhance(base)
         # rubocop:disable Style/ClassVars
         @@write_block ||= proc do |wrapped_method, *args, &block|
@@ -127,11 +128,11 @@ module Collapsium
 
       ##
       # Enhance Hash or Array value
-      def enhance_value(parent, value)
+      def enhance_value(parent, value, *args)
         if value.is_a? Hash
-          value = enhance_hash_value(parent, value)
+          value = enhance_hash_value(parent, value, *args)
         elsif value.is_a? Array
-          value = enhance_array_value(parent, value)
+          value = enhance_array_value(parent, value, *args)
         end
 
         # It's possible that the value is a Hash or an Array, but there's no
@@ -158,7 +159,7 @@ module Collapsium
         return value
       end
 
-      def enhance_array_value(parent, value)
+      def enhance_array_value(parent, value, *args)
         # If the value is not of the best ancestor type, make sure it becomes
         # that type.
         # XXX: DO NOT replace the loop with a simpler function - it could lead
@@ -184,14 +185,14 @@ module Collapsium
         # Set appropriate ancestors on the value
         set_ancestors(parent, value)
 
-        return call_virality(parent, value)
+        return call_virality(parent, value, *args)
       end
 
       ##
       # Given an outer Hash and a value, enhance Hash values so that they have
       # the same capabilities as the outer Hash. Non-Hash values are returned
       # unchanged.
-      def enhance_hash_value(parent, value)
+      def enhance_hash_value(parent, value, *args)
         # If the value is not of the best ancestor type, make sure it becomes
         # that type.
         # XXX: DO NOT replace the loop with :merge! or :merge - those are
@@ -221,14 +222,14 @@ module Collapsium
         # own. This *can* override a perfectly fine default_proc with our own,
         # which might suck.
         if parent.respond_to?(:default_proc)
-          # FIXME: need to inherit this for arrays, too
+          # FIXME: need to inherit this for arrays, too?
           value.default_proc ||= parent.default_proc
         end
 
         # Set appropriate ancestors on the value
         set_ancestors(parent, value)
 
-        return call_virality(parent, value)
+        return call_virality(parent, value, *args)
       end
 
       def copy_mods(parent, value)
@@ -237,16 +238,26 @@ module Collapsium
         value_mods = (class << value; self end).included_modules
         parent_mods = (class << parent; self end).included_modules
         parent_mods << ViralAncestorTypes
-        mods_to_copy = parent_mods - value_mods
+        mods_to_copy = (parent_mods - value_mods).uniq
+
+        # Small fixup for JSON; this doesn't technically belong here, but let's
+        # play nice.
+        if value.is_a? Array
+          mods_to_copy.delete(::JSON::Ext::Generator::GeneratorMethods::Hash)
+        elsif value.is_a? Hash
+          mods_to_copy.delete(::JSON::Ext::Generator::GeneratorMethods::Array)
+        end
+
+        # Copy mods.
         mods_to_copy.each do |mod|
           value.extend(mod)
         end
       end
 
-      def call_virality(parent, value)
+      def call_virality(parent, value, *args)
         # The parent class can define its own virality function.
         if parent.respond_to?(:virality)
-          value = parent.virality(value)
+          value = parent.virality(value, *args)
         end
 
         return value
@@ -300,7 +311,7 @@ module Collapsium
           value.send(setter, ancestor)
         end
       end
-    end
+    end # class << self
 
   end # module ViralCapabilities
 end # module Collapsium

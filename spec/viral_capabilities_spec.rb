@@ -71,7 +71,7 @@ module ViralityModule
   extend ::Collapsium::ViralCapabilities
   include ::Collapsium::Support::Methods
 
-  def virality(value)
+  def virality(value, *_)
     # Wrap :delete to become a no-op
     wrap_method(value, :delete) do
       next true
