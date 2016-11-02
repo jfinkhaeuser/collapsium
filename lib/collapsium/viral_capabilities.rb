@@ -270,6 +270,9 @@ module Collapsium
             # rubocop:disable Lint/HandleExceptions
             begin
               klass = receiver.send(getter)
+              if klass.nil? or klass == NilClass
+                next
+              end
               if klass != default
                 return klass
               end

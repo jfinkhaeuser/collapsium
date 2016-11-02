@@ -80,6 +80,12 @@ module ViralityModule
   end
 end
 
+class RespondsToHashAncestor < Hash
+  def hash_ancestor
+    return nil
+  end
+end
+
 describe ::Collapsium::ViralCapabilities do
   context PrependedHash do
     let(:tester) do
@@ -270,6 +276,13 @@ describe ::Collapsium::ViralCapabilities do
     it "peforms a no-op when adding the right class" do
       tester[:bar] = inner
       expect(tester[:bar][:bar].object_id).to eql innermost.object_id
+    end
+  end
+
+  context RespondsToHashAncestor do
+    it "can still be used virally" do
+      tester = PrependedHash.new
+      expect { tester.merge(RespondsToHashAncestor.new) }.not_to raise_error
     end
   end
 end
