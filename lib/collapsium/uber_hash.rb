@@ -10,6 +10,7 @@
 require 'collapsium/recursive_merge'
 require 'collapsium/recursive_dup'
 require 'collapsium/recursive_sort'
+require 'collapsium/recursive_fetch'
 require 'collapsium/indifferent_access'
 require 'collapsium/pathed_access'
 require 'collapsium/prototype_match'
@@ -25,6 +26,7 @@ module Collapsium
     include RecursiveMerge
     include RecursiveDup
     include RecursiveSort
+    include RecursiveFetch
     include PathedAccess
     include PrototypeMatch
 
