@@ -27,13 +27,20 @@ module Collapsium
     # the match value passed to the block.
     def recursive_fetch_one(key, default = nil, &block)
       # Start simple at the top level.
-      result = fetch(key, default)
-      if result != default
-        if not block.nil?
-          result = yield self, result, default
+      # rubocop:disable Lint/HandleExceptions
+      begin
+        result = fetch(key, default)
+        if result != default
+          if not block.nil?
+            result = yield self, result, default
+          end
+          return result
         end
-        return result
+      rescue TypeError
+        # Happens if self is an Array and key is a String that cannot
+        # be converted to Integer.
       end
+      # rubocop:enable Lint/HandleExceptions
 
       # We have to recurse for nested values
       result = map do |_, v|
@@ -60,13 +67,20 @@ module Collapsium
       result = []
 
       # Start simple at the top level.
-      ret = fetch(key, default)
-      if ret != default
-        if not block.nil?
-          ret = yield self, ret, default
+      # rubocop:disable Lint/HandleExceptions
+      begin
+        ret = fetch(key, default)
+        if ret != default
+          if not block.nil?
+            ret = yield self, ret, default
+          end
+          result << ret
         end
-        result << ret
+      rescue TypeError
+        # Happens if self is an Array and key is a String that cannot
+        # be converted to Integer.
       end
+      # rubocop:enable Lint/HandleExceptions
 
       # We have to recurse for nested values
       result += map do |_, v|
