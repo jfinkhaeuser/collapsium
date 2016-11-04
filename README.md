@@ -41,6 +41,8 @@ that is ActiveSupport...
   recursively.
 - The `RecursiveSort` module provides a `#recursive_sort` function which sorts
   recursively.
+- The `RecursiveFetch` module provides `#recursve_fetch` and `#recursive_fetch_one`
+  which searches recursively for all/the first ocurrence(s) of a key respectively.
 - The `PathedAccess` module provides a pathed access method to nested Hashes:
 
   ```ruby
