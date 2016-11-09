@@ -84,7 +84,7 @@ module Collapsium
           # Otherwise we had pathed access, and only want to pass the last
           # component to whatever method we're calling.
           the_args = args
-          if not args[0].is_a?(Symbol)
+          if not args[0].is_a?(Symbol) and args[0] != components.last
             the_args = args.dup
             the_args[0] = components.last
           end
@@ -92,6 +92,7 @@ module Collapsium
           # Array methods we're modifying here are indexed, so the first argument
           # must be an integer. Let's make it so :)
           if leaf.is_a? Array and the_args[0][0] =~ /[0-9]/
+            the_args = the_args.dup
             the_args[0] = the_args[0].to_i
           end
 
