@@ -34,21 +34,41 @@ module Collapsium
         return self
       end
 
-      merger = proc do |_, v1, v2|
-        # rubocop:disable Style/GuardClause
+      the_merger = proc do |the_self, v1, v2|
         if v1.is_a? Hash and v2.is_a? Hash
-          next v1.merge!(v2, &merger)
+          v1 = ViralCapabilities.enhance_value(the_self, v1)
+          v2 = ViralCapabilities.enhance_value(the_self, v2)
+
+          keys = (v1.keys + v2.keys).map(&:to_sym).uniq
+          keys.each do |key|
+            v1_inner = v1[key]
+            v2_inner = v2[key]
+            if not v1_inner.nil? and not v2_inner.nil?
+              v1[key] = the_merger.call(the_self, v1_inner, v2_inner)
+            elsif not v1_inner.nil?
+              # Nothing to do, we have v1[key]
+            else
+              # v2.key?(key) is true
+              v1[key] = v2_inner
+            end
+          end
+          next v1
         elsif v1.is_a? Array and v2.is_a? Array
           next v1 + v2
         end
+
         if overwrite
           next v2
         else
           next v1
         end
-        # rubocop:enable Style/GuardClause
       end
-      merge!(other, &merger)
+
+      # We can't call merge! because that will only be invoked for keys that
+      # are missing, and default_proc doesn't seem to be used there. So we need
+      # to call a custom merge function.
+      new_self = the_merger.call(self, self, other)
+      replace(new_self)
     end
 
     ##
