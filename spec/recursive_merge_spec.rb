@@ -1,6 +1,7 @@
 require 'spec_helper'
 require_relative '../lib/collapsium/recursive_merge'
 require_relative '../lib/collapsium/indifferent_access'
+require_relative '../lib/collapsium/pathed_access'
 
 describe ::Collapsium::RecursiveMerge do
   before :each do
@@ -145,6 +146,59 @@ describe ::Collapsium::RecursiveMerge do
       expect(x[:foo][:bar]).to eql 123 # no overwrite
       expect(x[:arr].length).to eql 2
       expect(x[:arr]).to eql [2, 1]
+    end
+  end
+
+  context "with IndifferentAccess and PathedAccess" do
+    let(:tester) do
+      tester = {}
+      tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
+      tester.extend(::Collapsium::RecursiveMerge)
+      tester.extend(::Collapsium::PathedAccess)
+    end
+
+    it "merges string and symbol keys" do
+      tester[:foo] = {
+        bar: 123,
+      }
+      tester[:arr] = [2]
+      other = {
+        "foo" => {
+          "baz asdf" => "quux",
+          "bar" => 42
+        },
+        "arr" => [1],
+      }
+      x = tester.recursive_merge(other)
+
+      expect(x.length).to eql 2
+      expect(x['foo'].length).to eql 2
+      expect(x['foo.baz asdf']).to eql 'quux'
+      expect(x['foo.bar']).to eql 42 # overwrite
+      expect(x['arr'].length).to eql 2
+      expect(x['arr']).to eql [2, 1]
+    end
+
+    it "merges string and symbol keys without overwriting" do
+      tester[:foo] = {
+        bar: 123,
+      }
+      tester[:arr] = [2]
+      other = {
+        "foo" => {
+          "baz asdf" => "quux",
+          "bar" => 42
+        },
+        "arr" => [1],
+      }
+      x = tester.recursive_merge(other, false)
+
+      expect(x.length).to eql 2
+      expect(x['foo'].length).to eql 2
+      expect(x['foo.baz asdf']).to eql 'quux'
+      expect(x['foo.bar']).to eql 123 # no overwrite
+      expect(x['arr'].length).to eql 2
+      expect(x['arr']).to eql [2, 1]
     end
   end
 end
