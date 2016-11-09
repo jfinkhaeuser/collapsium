@@ -28,15 +28,13 @@ module Collapsium
     include RecursiveSort
     include RecursiveFetch
     include PathedAccess
+    include IndifferentAccess
     include PrototypeMatch
 
     include Support::HashMethods
 
     def initialize(*args)
       super
-
-      # Activate IndifferentAccess
-      self.default_proc = IndifferentAccess::DEFAULT_PROC
 
       # Extra functionality: allow being initialized by a Hash
       if args.empty? or not args[0].is_a?(Hash)
