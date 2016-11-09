@@ -66,7 +66,7 @@ describe ::Collapsium::PathedAccess do
             },
             baz: [{ inner: { x: 1 } }],
             "foo.bar" => 123,
-            "pathed.key" => 321
+            "pathed.key" => 321,
         )
 
         expect(@tester.path_prefix).to eql "."
@@ -144,6 +144,22 @@ describe ::Collapsium::PathedAccess do
       # "foo" exists at the top level, but it does not contain "bar".
       # "foo.bar" also exists at the top level.
       expect(@tester["foo.bar"]).to be_nil
+    end
+
+    context "keys with spaces" do
+      it "accepts spaces in top-level keys" do
+        @tester['foo bar'] = 42
+        expect(@tester['foo bar']).to eql 42
+        expect(@tester['.foo bar']).to eql 42
+      end
+
+      it "accepts spaces in nested keys" do
+        @tester['spaces'] = {
+          'foo bar' => 42,
+        }
+        expect(@tester['spaces']['foo bar']).to eql 42
+        expect(@tester['spaces.foo bar']).to eql 42
+      end
     end
   end
 
