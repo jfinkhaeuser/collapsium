@@ -59,9 +59,8 @@ module Collapsium
 
         if overwrite
           next v2
-        else
-          next v1
         end
+        next v1
       end
 
       # We can't call merge! because that will only be invoked for keys that
