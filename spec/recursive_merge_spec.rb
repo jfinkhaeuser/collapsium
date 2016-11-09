@@ -86,7 +86,17 @@ describe ::Collapsium::RecursiveMerge do
     expect(x[:foo].respond_to?(:recursive_merge)).to be_truthy
   end
 
-  context "IndifferentAccess" do
+  it "does not offer indifferent access by itself" do
+    tester = {
+      foo: 42
+    }
+    tester.extend(::Collapsium::RecursiveMerge)
+
+    expect(tester[:foo]).to eql 42
+    expect(tester['foo']).to be_nil
+  end
+
+  context "with IndifferentAccess" do
     let(:tester) do
       tester = {}
       tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
