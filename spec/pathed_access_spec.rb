@@ -184,41 +184,6 @@ describe ::Collapsium::PathedAccess do
     end
   end
 
-  describe "with IndifferentAccess" do
-    before do
-      require_relative '../lib/collapsium/indifferent_access'
-    end
-
-    it "can write with IndifferentAccess without overwriting" do
-      @tester[:foo] = {
-        bar: 42,
-        baz: 'quux',
-      }
-      @tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
-
-      expect(@tester['foo.bar']).to eql 42
-      expect(@tester['foo.baz']).to eql 'quux'
-
-      @tester['foo.bar'] = 123
-      expect(@tester['foo.bar']).to eql 123
-      expect(@tester['foo.baz']).to eql 'quux'
-    end
-
-    it "doesn't break #path_prefix" do
-      @tester[:foo] = {
-        bar: {
-          baz: 123,
-        }
-      }
-      @tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
-
-      expect(@tester[:foo].path_prefix).to eql ".foo"
-      expect(@tester["foo"].path_prefix).to eql ".foo"
-      expect(@tester[:foo][:bar].path_prefix).to eql ".foo.bar"
-      expect(@tester["foo.bar"].path_prefix).to eql ".foo.bar"
-    end
-  end
-
   context PathedHash do
     let(:test_hash) { PathedHash.new }
 
@@ -253,25 +218,94 @@ describe ::Collapsium::PathedAccess do
     end
   end
 
-  context "nested symbol keys" do
-    before do
-      @tester['foo'] = {
-        bar: { 'baz' => 'quux' },
-      }
-      @tester[:bar] = {
-        'foo' => 42,
-      }
+  context "with IndifferentAccess" do
+    it "resolves with a created Hash and :[]" do
+      tester = { foo: { 'bar' => 42 } }
+      tester.extend(::Collapsium::PathedAccess)
+      tester.extend(::Collapsium::IndifferentAccess)
+
+      res = tester['.foo']
+
+      expect(res.length).to eql 1
+      expect(res.key?('bar')).to be_truthy
+      expect(res.fetch('bar')).to eql 42
+      expect(res['bar']).to eql 42
     end
 
-    it "resolve with PathedAccess & IndifferentAccess" do
-      # This should be nil - we don't use indifferent access yet.
-      expect(@tester['foo.bar.baz']).to be_nil
-      expect(@tester['bar.foo']).to be_nil
+    it "resolves with a created Hash and :fetch" do
+      tester = { foo: { 'bar' => 42 } }
+      tester.extend(::Collapsium::PathedAccess)
+      tester.extend(::Collapsium::IndifferentAccess)
 
-      # With indifferent access, PathedAccess must work
-      @tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
-      expect(@tester['foo.bar.baz']).to eql 'quux'
-      expect(@tester['bar.foo']).to eql 42
+      res = tester.fetch('.foo')
+
+      expect(res.length).to eql 1
+      expect(res.key?('bar')).to be_truthy
+      expect(res.fetch('bar')).to eql 42
+      expect(res['bar']).to eql 42
+    end
+
+    it "resolves with a replaced Hash and :[]" do
+      tester = {}
+      tester.extend(::Collapsium::PathedAccess)
+      tester.extend(::Collapsium::IndifferentAccess)
+      tester.replace(foo: { 'bar' => 42 })
+
+      res = tester['.foo']
+
+      expect(res.length).to eql 1
+      expect(res.key?('bar')).to be_truthy
+      expect(res.fetch('bar')).to eql 42
+      expect(res['bar']).to eql 42
+    end
+
+    it "resolves with a replaced Hash and :fetch" do
+      tester = {}
+      tester.extend(::Collapsium::PathedAccess)
+      tester.extend(::Collapsium::IndifferentAccess)
+      tester.replace(foo: { 'bar' => 42 })
+
+      res = tester.fetch('.foo')
+
+      expect(res.length).to eql 1
+      expect(res.key?('bar')).to be_truthy
+      expect(res.fetch('bar')).to eql 42
+      expect(res['bar']).to eql 42
+    end
+
+    it "can write without overwriting" do
+      tester = {
+        foo: {
+          bar: 42,
+          baz: 'quux',
+        }
+      }
+      tester.extend(::Collapsium::PathedAccess)
+      tester.extend(::Collapsium::IndifferentAccess)
+
+      expect(tester['foo.bar']).to eql 42
+      expect(tester['foo.baz']).to eql 'quux'
+
+      tester['foo.bar'] = 123
+      expect(tester['foo.bar']).to eql 123
+      expect(tester['foo.baz']).to eql 'quux'
+    end
+
+    it "doesn't break #path_prefix" do
+      tester = {
+        foo: {
+          bar: {
+            baz: 123,
+          }
+        }
+      }
+      tester.extend(::Collapsium::PathedAccess)
+      tester.extend(::Collapsium::IndifferentAccess)
+
+      expect(tester[:foo].path_prefix).to eql ".foo"
+      expect(tester["foo"].path_prefix).to eql ".foo"
+      expect(tester[:foo][:bar].path_prefix).to eql ".foo.bar"
+      expect(tester["foo.bar"].path_prefix).to eql ".foo.bar"
     end
   end
 end
