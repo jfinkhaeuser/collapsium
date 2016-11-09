@@ -1,5 +1,6 @@
 require 'spec_helper'
 require_relative '../lib/collapsium/pathed_access'
+require_relative '../lib/collapsium/indifferent_access'
 
 class PathedHash < Hash
   prepend ::Collapsium::PathedAccess
@@ -34,7 +35,7 @@ describe ::Collapsium::PathedAccess do
     end
   end
 
-  describe "pathed access" do
+  describe "PathedAccess" do
     context ":path_prefix" do
       it "can be read" do
         expect { @tester.path_prefix }.not_to raise_error
@@ -172,7 +173,7 @@ describe ::Collapsium::PathedAccess do
       }
     end
 
-    it "can still perform pathed access" do
+    it "can still perform PathedAccess" do
       foo = @tester['foo']
       expect(foo['bar.baz']).to eql 42
     end
@@ -183,12 +184,12 @@ describe ::Collapsium::PathedAccess do
     end
   end
 
-  describe "with indifferent access" do
+  describe "with IndifferentAccess" do
     before do
       require_relative '../lib/collapsium/indifferent_access'
     end
 
-    it "can write with indifferent access without overwriting" do
+    it "can write with IndifferentAccess without overwriting" do
       @tester[:foo] = {
         bar: 42,
         baz: 'quux',
@@ -246,7 +247,7 @@ describe ::Collapsium::PathedAccess do
       }
     end
 
-    it "resolved with pathed access" do
+    it "resolved with PathedAccess" do
       expect(@tester['foo.bar.0.baz1']).to eql 'quux1'
       expect(@tester['foo.bar.1.baz2']).to eql 'quux2'
     end
@@ -257,15 +258,20 @@ describe ::Collapsium::PathedAccess do
       @tester['foo'] = {
         bar: { 'baz' => 'quux' },
       }
+      @tester[:bar] = {
+        'foo' => 42,
+      }
     end
 
-    it "resolve with pathed access & indifferent access" do
+    it "resolve with PathedAccess & IndifferentAccess" do
       # This should be nil - we don't use indifferent access yet.
       expect(@tester['foo.bar.baz']).to be_nil
+      expect(@tester['bar.foo']).to be_nil
 
-      # With indifferent access, pathed access must work
+      # With indifferent access, PathedAccess must work
       @tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
       expect(@tester['foo.bar.baz']).to eql 'quux'
+      expect(@tester['bar.foo']).to eql 42
     end
   end
 end
