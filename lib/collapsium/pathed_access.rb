@@ -93,7 +93,7 @@ module Collapsium
           # must be an integer. Let's make it so :)
           if leaf.is_a? Array and the_args[0][0] =~ /[0-9]/
             the_args = the_args.dup
-            the_args[0] = the_args[0].to_i
+            the_args[0] = the_args[0].to_s.to_i
           end
 
           # Then we can continue with that method.
