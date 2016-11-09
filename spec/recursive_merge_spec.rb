@@ -100,7 +100,7 @@ describe ::Collapsium::RecursiveMerge do
   context "with IndifferentAccess" do
     let(:tester) do
       tester = {}
-      tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
+      tester.extend(::Collapsium::IndifferentAccess)
       tester.extend(::Collapsium::RecursiveMerge)
     end
 
@@ -152,7 +152,7 @@ describe ::Collapsium::RecursiveMerge do
   context "with IndifferentAccess and PathedAccess" do
     let(:tester) do
       tester = {}
-      tester.default_proc = ::Collapsium::IndifferentAccess::DEFAULT_PROC
+      tester.extend(::Collapsium::IndifferentAccess)
       tester.extend(::Collapsium::RecursiveMerge)
       tester.extend(::Collapsium::PathedAccess)
     end
