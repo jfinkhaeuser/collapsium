@@ -7,6 +7,8 @@
 # All rights reserved.
 #
 
+require 'zlib'
+
 module Collapsium
 
   ##
@@ -110,7 +112,6 @@ module Collapsium
 
           # Our current binding is based on the wrapper block and our own class,
           # as well as the arguments (CRC32).
-          require 'zlib'
           signature = Zlib.crc32(args.to_s)
           the_binding = [wrapper_block.object_id, self.class.object_id, signature]
 
