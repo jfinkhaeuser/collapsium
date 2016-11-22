@@ -7,12 +7,12 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.3.0)
-    codeclimate-test-reporter (0.6.0)
-      simplecov (>= 0.7.1, < 1.0.0)
+    codeclimate-test-reporter (1.0.3)
+      simplecov
     diff-lcs (1.2.5)
     docile (1.1.5)
     json (2.0.2)
-    parser (2.3.1.4)
+    parser (2.3.2.0)
       ast (~> 2.2)
     powerpack (0.1.1)
     rainbow (2.1.0)
