@@ -62,6 +62,23 @@ describe ::Collapsium::IndifferentAccess do
     expect(tester[3.14]).to be_nil
   end
 
+  it "makes keys unique" do
+    test = [
+      "foo", :foo,
+      "42", :"42", 42,
+    ]
+    expect(::Collapsium::IndifferentAccess.unique_keys(test)).to eql %w(foo 42)
+  end
+
+  it "does nothing for Arrays" do
+    test = [42]
+    test.extend(::Collapsium::IndifferentAccess)
+
+    result = nil
+    expect { result = test.include?(42) }.not_to raise_error
+    expect(result).to be_truthy
+  end
+
   context IncludedIndifferentHash do
     let(:tester) { IncludedIndifferentHash.new }
 
