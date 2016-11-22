@@ -48,17 +48,27 @@ module Collapsium
         return tries
       end
 
+      ##
+      # Make the given keys unique according to the logic of this module.
+      def unique_keys(keys)
+        # The simplest way is to stringlify all keys before making them
+        # unique. That works for Integer as well as Symbol.
+        return keys.map(&:to_s).uniq
+      end
+
       READ_METHODS = ::Collapsium::Support::HashMethods::KEYED_READ_METHODS.freeze
 
-      INDIFFERENT_ACCESS_READER = proc do |wrapped_method, key, *args, &block|
-        # Bail out early if the receiver is not a Hash.
+      INDIFFERENT_ACCESS_READER = proc do |wrapped_method, *args, &block|
+        # Bail out early if the receiver is not a Hash. Do the same if we have
+        # no key.
         receiver = wrapped_method.receiver
-        if not receiver.is_a? Hash
-          next wrapped_method.call(key, *args, &block)
+        if not receiver.is_a? Hash or args.empty?
+          next wrapped_method.call(*args, &block)
         end
 
         # Definitely try the key as given first. Then, depending on the key's
         # type and value, we want to try it as a Symbol, String and/or Integer
+        key = args.shift
         tries = IndifferentAccess.key_permutations(key)
 
         # With the variations to try assembled, go through them one by one
