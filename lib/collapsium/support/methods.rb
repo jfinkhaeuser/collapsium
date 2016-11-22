@@ -18,6 +18,53 @@ module Collapsium
     module Methods
       WRAPPER_HASH = "@__collapsium_methods_wrappers".freeze
 
+      # Try to determine built-in Classes and Modules early on, so we
+      # can ignore them in our wrappers search.
+      class << self
+        ##
+        # Return built-in symbols. It's called to initialize the BUILTINS
+        # constant early on. It also caches its result, so should be safe to
+        # call later, too.
+        def builtins
+          @builtins ||= nil
+          if not @builtins.nil?
+            return @builtins
+          end
+
+          # Object's constants contain all Module and Class definitions to date.
+          # We need to get the constant values, though, not just their names.
+          builtins = Object.constants.sort.map do |const_name|
+            Object.const_get(const_name)
+          end
+
+          # If JSON was required, there will be some generator methods that
+          # override the above generators. We want to filter those out as well.
+          # If, however, JSON was not required, we'll get a NameError and won't
+          # add anything new.
+          # rubocop:disable Lint/HandleExceptions
+          begin
+            json_builtins = JSON::Ext::Generator::GeneratorMethods.constants.sort
+            json_builtins.map! do |const_name|
+              JSON::Ext::Generator::GeneratorMethods.const_get(const_name)
+            end
+            builtins += json_builtins
+          rescue NameError
+            # We just ignore this; if JSON is automatically required, there will
+            # be some mixin Modules here, otherwise we will just process them.
+          end
+          # rubocop:enable Lint/HandleExceptions
+
+          # Last, we want to filter, so only Class and Module items are kept.
+          builtins.select! do |item|
+            item.is_a?(Module) or item.is_a?(Class)
+          end
+
+          @builtins = builtins
+          return @builtins
+        end
+      end # class << self
+      BUILTINS = Methods.builtins.freeze
+
       ##
       # Given the base module, wraps the given method name in the given block.
       # The block must accept the wrapped_method as the first parameter, followed
@@ -145,7 +192,7 @@ module Collapsium
         # Given any base (value, class, module) and a method name, returns the
         # wrappers defined for the base, in order of definition. If no wrappers
         # are defined, an empty Array is returned.
-        def wrappers(base, method_name, visited = Set.new)
+        def wrappers(base, method_name, visited = nil)
           # First, check the instance, then its class for a wrapper. If either of
           # them succeeds, exit with a result.
           [base, base.class].each do |item|
@@ -155,10 +202,6 @@ module Collapsium
             end
           end
 
-          # We add the base and its class to the set of visited items.
-          visited.add(base)
-          visited.add(base.class)
-
           # If neither of the above contained a wrapper, look at ancestors
           # recursively.
           ancestors = nil
@@ -167,7 +210,21 @@ module Collapsium
           rescue NoMethodError
             ancestors = base.class.ancestors
           end
-          ancestors = ancestors - Object.ancestors - [Object, Class, Module]
+          ancestors = ancestors - Object.ancestors - BUILTINS
+
+          # Bail out if there are no ancestors to process.
+          if ancestors.empty?
+            return []
+          end
+
+          # We add the base and its class to the set of visited items. Note
+          # that we're doing it late, so we only have to do it when we have
+          # ancestors to visit.
+          if visited.nil?
+            visited = Set.new
+          end
+          visited.add(base)
+          visited.add(base.class)
 
           ancestors.each do |ancestor|
             # Skip an visited item...
