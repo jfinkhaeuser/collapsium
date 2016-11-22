@@ -142,10 +142,12 @@ module Collapsium
         # checking whether any wrappers are defined for it.
         # Turns out that that's quite expensive at run-time, though, so instead
         # we resort to flagging enhanced values.
-        needs_wrapping = !value.instance_variable_get(ENHANCED_MARKER)
-        if needs_wrapping and (value.is_a? Array or value.is_a? Hash)
-          enhance(value)
-          value.instance_variable_set(ENHANCED_MARKER, true)
+        if value.is_a? Array or value.is_a? Hash
+          needs_wrapping = !value.instance_variable_get(ENHANCED_MARKER)
+          if needs_wrapping
+            enhance(value)
+            value.instance_variable_set(ENHANCED_MARKER, true)
+          end
         end
 
         return value
