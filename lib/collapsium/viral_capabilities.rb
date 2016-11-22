@@ -35,6 +35,8 @@ module Collapsium
       array_ancestor: Array,
     }.freeze
 
+    ENHANCED_MARKER = "@__collapsium_viral_capabilities_marker".freeze
+
     ##
     # Any Object (Class, Module) that's enhanced with ViralCapabilities will at
     # least be extended with a module defining its Hash and Array ancestors.
@@ -138,22 +140,12 @@ module Collapsium
         # It's possible that the value is a Hash or an Array, but there's no
         # ancestor from which capabilities can be copied. We can find out by
         # checking whether any wrappers are defined for it.
-        needs_wrapping = true
-        READ_METHODS.each do |method_name|
-          wrappers = ::Collapsium::Support::Methods.wrappers(value, method_name)
-          # rubocop:disable Style/Next
-          if wrappers.include?(@@read_block)
-            # all done
-            needs_wrapping = false
-            break
-          end
-          # rubocop:enable Style/Next
-        end
-
-        # If we have a Hash or Array value that needs enhancing still, let's
-        # do that.
+        # Turns out that that's quite expensive at run-time, though, so instead
+        # we resort to flagging enhanced values.
+        needs_wrapping = !value.instance_variable_get(ENHANCED_MARKER)
         if needs_wrapping and (value.is_a? Array or value.is_a? Hash)
           enhance(value)
+          value.instance_variable_set(ENHANCED_MARKER, true)
         end
 
         return value
