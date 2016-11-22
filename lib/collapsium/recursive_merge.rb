@@ -39,19 +39,28 @@ module Collapsium
           v1 = ViralCapabilities.enhance_value(the_self, v1)
           v2 = ViralCapabilities.enhance_value(the_self, v2)
 
-          keys = (v1.keys + v2.keys).map(&:to_sym).uniq
+          # IndifferentAccess has its own idea of which keys are unique, so if
+          # we use it, we must consult it.
+          keys = (v1.keys + v2.keys).uniq
+          if the_self.singleton_class.ancestors.include?(IndifferentAccess)
+            keys = IndifferentAccess.unique_keys(keys)
+          end
+          new_val = ViralCapabilities.enhance_value(the_self, {})
           keys.each do |key|
             v1_inner = v1[key]
             v2_inner = v2[key]
             if not v1_inner.nil? and not v2_inner.nil?
-              v1[key] = the_merger.call(the_self, v1_inner, v2_inner)
+              new_val[key] = the_merger.call(the_self, v1_inner, v2_inner)
             elsif not v1_inner.nil?
               # Nothing to do, we have v1[key]
+              new_val[key] = v1_inner
             else
               # v2.key?(key) is true
-              v1[key] = v2_inner
+              new_val[key] = v2_inner
             end
           end
+
+          v1.replace(new_val)
           next v1
         elsif v1.is_a? Array and v2.is_a? Array
           next v1 + v2
