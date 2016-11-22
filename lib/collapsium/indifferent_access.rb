@@ -71,7 +71,10 @@ module Collapsium
         return sorted
       end
 
-      READ_METHODS = ::Collapsium::Support::HashMethods::KEYED_READ_METHODS.freeze
+      READ_METHODS = (
+          ::Collapsium::Support::HashMethods::KEYED_READ_METHODS \
+          + ::Collapsium::Support::HashMethods::KEYED_WRITE_METHODS
+      ).freeze
 
       INDIFFERENT_ACCESS_READER = proc do |wrapped_method, *args, &block|
         # Bail out early if the receiver is not a Hash. Do the same if we have

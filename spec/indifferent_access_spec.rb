@@ -92,6 +92,19 @@ describe ::Collapsium::IndifferentAccess do
     expect(result).to be_truthy
   end
 
+  it "also works for write access" do
+    test = {
+      "foo" => 123
+    }
+    test.extend(::Collapsium::IndifferentAccess)
+
+    expect { test[:foo] = 42 }.not_to raise_error
+    expect(test["foo"]).to eql 42
+
+    expect { test.delete(:foo) }.not_to raise_error
+    expect(test.empty?).to be_truthy
+  end
+
   context IncludedIndifferentHash do
     let(:tester) { IncludedIndifferentHash.new }
 
