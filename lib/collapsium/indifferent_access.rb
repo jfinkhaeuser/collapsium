@@ -26,14 +26,9 @@ module Collapsium
     class << self
       include ::Collapsium::Support::Methods
 
-      READ_METHODS = (
-        ::Collapsium::Support::HashMethods::KEYED_READ_METHODS \
-        + ::Collapsium::Support::ArrayMethods::INDEXED_READ_METHODS
-      ).uniq.freeze
-
-      INDIFFERENT_ACCESS_READER = proc do |wrapped_method, key, *args, &block|
-        # Definitely try the key as given first. Then, depending on the key's
-        # type and value, we want to try it as a Symbol, String and/or Integer
+      ##
+      # Given a key, returns all indifferent permutations to try.
+      def key_permutations(key)
         tries = [key]
         if key.is_a? Symbol
           key_s = key.to_s
@@ -50,9 +45,24 @@ module Collapsium
           tries += [key.to_s, key.to_s.to_sym]
         end
 
+        return tries
+      end
+
+      READ_METHODS = ::Collapsium::Support::HashMethods::KEYED_READ_METHODS.freeze
+
+      INDIFFERENT_ACCESS_READER = proc do |wrapped_method, key, *args, &block|
+        # Bail out early if the receiver is not a Hash.
+        receiver = wrapped_method.receiver
+        if not receiver.is_a? Hash
+          next wrapped_method.call(key, *args, &block)
+        end
+
+        # Definitely try the key as given first. Then, depending on the key's
+        # type and value, we want to try it as a Symbol, String and/or Integer
+        tries = IndifferentAccess.key_permutations(key)
+
         # With the variations to try assembled, go through them one by one
         result = nil
-        receiver = wrapped_method.receiver
         tries.each do |try|
           if receiver.keys.include?(try)
             result = wrapped_method.call(try, *args, &block)
@@ -81,12 +91,13 @@ module Collapsium
       end
 
       def enhance(base)
-        # Make the capabilities of classes using PathedAccess viral.
+        # Make the capabilities of classes using IndifferentAccess viral.
         base.extend(ViralCapabilities)
 
         # Wrap all accessor functions to deal with paths
         READ_METHODS.each do |method|
-          wrap_method(base, method, raise_on_missing: false, &INDIFFERENT_ACCESS_READER)
+          wrap_method(base, method, raise_on_missing: false,
+                      &INDIFFERENT_ACCESS_READER)
         end
       end
     end # class << self
