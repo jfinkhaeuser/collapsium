@@ -13,7 +13,6 @@ class ExtendedIndifferentHash < Hash
   extend ::Collapsium::IndifferentAccess
 end
 
-
 describe ::Collapsium::IndifferentAccess do
   let(:tester) do
     tester = {}

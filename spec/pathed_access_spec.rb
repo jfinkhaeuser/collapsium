@@ -67,7 +67,7 @@ describe ::Collapsium::PathedAccess do
             },
             baz: [{ inner: { x: 1 } }],
             "foo.bar" => 123,
-            "pathed.key" => 321,
+            "pathed.key" => 321
         )
 
         expect(@tester.path_prefix).to eql "."
