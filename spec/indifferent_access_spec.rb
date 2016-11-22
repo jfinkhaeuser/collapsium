@@ -70,6 +70,20 @@ describe ::Collapsium::IndifferentAccess do
     expect(::Collapsium::IndifferentAccess.unique_keys(test)).to eql %w(foo 42)
   end
 
+  it "can sort keys" do
+    test = [
+      "foo", :foo,
+      "bar", :bar,
+      "42", :"42", 42,
+    ]
+    expecation = [
+      42,
+      :"42", :bar, :foo,
+      "42", "bar", "foo",
+    ]
+    expect(::Collapsium::IndifferentAccess.sorted_keys(test)).to eql expecation
+  end
+
   it "does nothing for Arrays" do
     test = [42]
     test.extend(::Collapsium::IndifferentAccess)

@@ -2,11 +2,6 @@ require 'spec_helper'
 require_relative '../lib/collapsium/recursive_sort'
 
 describe ::Collapsium::RecursiveSort do
-  before :each do
-    @tester = {}
-    @tester.extend(::Collapsium::RecursiveSort)
-  end
-
   it "sorts a nested hash with string keys in place" do
     h = {
       'a' => 1,
@@ -79,5 +74,19 @@ describe ::Collapsium::RecursiveSort do
     # Similar with object IDs
     expect(h.object_id).not_to eql h2.object_id
     expect(h['c'].object_id).not_to eql h2['c'].object_id
+  end
+
+  it "works with IndifferentAccess" do
+    require_relative '../lib/collapsium/indifferent_access'
+    tester = {
+      "foo" => 42,
+      "bar" => 123,
+      :foo => "foo from symbol",
+      :bar => "bar from symbol",
+    }
+    tester.extend(::Collapsium::RecursiveSort)
+    tester.extend(::Collapsium::IndifferentAccess)
+
+    expect { tester.recursive_sort! }.not_to raise_error
   end
 end
