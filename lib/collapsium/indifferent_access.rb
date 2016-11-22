@@ -51,9 +51,24 @@ module Collapsium
       ##
       # Make the given keys unique according to the logic of this module.
       def unique_keys(keys)
-        # The simplest way is to stringlify all keys before making them
+        # The simplest way is to stringify all keys before making them
         # unique. That works for Integer as well as Symbol.
         return keys.map(&:to_s).uniq
+      end
+
+      ##
+      # Sort the given keys indifferently. This will sort Integers first,
+      # Symbols second and Strings third. Everything else comes last. This
+      # is done because that's the order in which comparsion time increases.
+      def sorted_keys(keys, &block)
+        # Sorting sucks because we can't compare Strings and Symbols. So in
+        # order to get this right, we'll have to sort each type individually,
+        # then concatenate the results.
+        sorted = []
+        [Integer, Symbol, String].each do |klass|
+          sorted += keys.select { |key| key.is_a?(klass) }.sort(&block)
+        end
+        return sorted
       end
 
       READ_METHODS = ::Collapsium::Support::HashMethods::KEYED_READ_METHODS.freeze
