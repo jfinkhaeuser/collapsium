@@ -34,7 +34,22 @@ module Collapsium
         return self
       end
 
-      the_merger = proc do |the_self, v1, v2|
+      # We can't call merge! because that will only be invoked for keys that
+      # are missing, and default_proc doesn't seem to be used there. So we need
+      # to call a custom merge function.
+      new_self = RecursiveMerge.merger(self, self, other, overwrite)
+      replace(new_self)
+    end
+
+    ##
+    # Same as `dup.recursive_merge!`
+    # @param (see #recursive_merge!)
+    def recursive_merge(other, overwrite = true)
+      return dup.recursive_merge!(other, overwrite)
+    end
+
+    class << self
+      def merger(the_self, v1, v2, overwrite)
         if v1.is_a? Hash and v2.is_a? Hash
           v1 = ViralCapabilities.enhance_value(the_self, v1)
           v2 = ViralCapabilities.enhance_value(the_self, v2)
@@ -50,7 +65,8 @@ module Collapsium
             v1_inner = v1[key]
             v2_inner = v2[key]
             if not v1_inner.nil? and not v2_inner.nil?
-              new_val[key] = the_merger.call(the_self, v1_inner, v2_inner)
+              new_val[key] = RecursiveMerge.merger(the_self, v1_inner, v2_inner,
+                                                   overwrite)
             elsif not v1_inner.nil?
               # Nothing to do, we have v1[key]
               new_val[key] = v1_inner
@@ -61,29 +77,16 @@ module Collapsium
           end
 
           v1.replace(new_val)
-          next v1
+          return v1
         elsif v1.is_a? Array and v2.is_a? Array
-          next v1 + v2
+          return v1 + v2
         end
 
         if overwrite
-          next v2
+          return v2
         end
-        next v1
+        return v1
       end
-
-      # We can't call merge! because that will only be invoked for keys that
-      # are missing, and default_proc doesn't seem to be used there. So we need
-      # to call a custom merge function.
-      new_self = the_merger.call(self, self, other)
-      replace(new_self)
-    end
-
-    ##
-    # Same as `dup.recursive_merge!`
-    # @param (see #recursive_merge!)
-    def recursive_merge(other, overwrite = true)
-      return dup.recursive_merge!(other, overwrite)
-    end
+    end # class << self
   end # module RecursiveMerge
 end # module Collapsium
