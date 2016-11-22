@@ -74,4 +74,9 @@ describe Collapsium::UberHash do
     x = ::Collapsium::UberHash.new(data)
     expect(x[:some].is_a?(::Collapsium::UberHash)).to be_truthy
   end
+
+  it "behaves like a Hash" do
+    tester = ::Collapsium::UberHash.new
+    expect { tester[] }.to raise_error(ArgumentError)
+  end
 end
