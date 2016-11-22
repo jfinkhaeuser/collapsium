@@ -8,6 +8,7 @@
 #
 
 require 'collapsium/viral_capabilities'
+require 'collapsium/indifferent_access'
 
 module Collapsium
   ##
@@ -21,7 +22,15 @@ module Collapsium
     # Recursively sort a Hash by its keys. Without a block, this function will
     # not be able to compare keys of different size.
     def recursive_sort!(&block)
-      return keys.sort(&block).reduce(self) do |seed, key|
+      # If we have IndifferentAccess, we need to sort keys appropriately.
+      the_keys = nil
+      if singleton_class.ancestors.include?(IndifferentAccess)
+        the_keys = IndifferentAccess.sorted_keys(keys, &block)
+      else
+        the_keys = keys.sort(&block)
+      end
+
+      return the_keys.reduce(self) do |seed, key|
         # Delete (and later re-insert) value for ordering
         value = self[key]
         delete(key)
