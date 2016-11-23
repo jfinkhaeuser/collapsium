@@ -58,7 +58,23 @@ module Collapsium
           # we use it, we must consult it.
           keys = (v1.keys + v2.keys).uniq
           if the_self.singleton_class.ancestors.include?(IndifferentAccess)
-            keys = IndifferentAccess.unique_keys(keys)
+            # We want to preserve each Hash's key types as much as possible, but
+            # IndifferentAccess doesn't care about types. We can use it to figure out
+            # which unique keys only exist in v2.
+            only_v2 = IndifferentAccess.unique_keys(keys) - IndifferentAccess.unique_keys(v1.keys)
+
+            # At this point, IndifferentAccess may have modified the key types
+            # in only_v2. To get back the original types, we can iterate the
+            # Hash and remember all keys that are indifferently contained in
+            # only_v2.
+            original_types = []
+            v2.each do |key, _|
+              unique = IndifferentAccess.unique_keys([key])
+              if only_v2.include?(unique[0])
+                original_types << key
+              end
+            end
+            keys = v1.keys + original_types
           end
           new_val = ViralCapabilities.enhance_value(the_self, {})
           keys.each do |key|
