@@ -71,12 +71,12 @@ module Collapsium
         return sorted
       end
 
-      READ_METHODS = (
+      METHODS = (
           ::Collapsium::Support::HashMethods::KEYED_READ_METHODS \
           + ::Collapsium::Support::HashMethods::KEYED_WRITE_METHODS
       ).freeze
 
-      INDIFFERENT_ACCESS_READER = proc do |wrapped_method, *args, &block|
+      INDIFFERENT_ACCESS = proc do |wrapped_method, *args, &block|
         # Bail out early if the receiver is not a Hash. Do the same if we have
         # no key.
         receiver = wrapped_method.receiver
@@ -123,9 +123,9 @@ module Collapsium
         base.extend(ViralCapabilities)
 
         # Wrap all accessor functions to deal with paths
-        READ_METHODS.each do |method|
+        METHODS.each do |method|
           wrap_method(base, method, raise_on_missing: false,
-                      &INDIFFERENT_ACCESS_READER)
+                      &INDIFFERENT_ACCESS)
         end
       end
     end # class << self
