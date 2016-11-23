@@ -89,8 +89,11 @@ module Collapsium
         key = args.shift
         tries = IndifferentAccess.key_permutations(key)
 
-        # With the variations to try assembled, go through them one by one
-        result = nil
+        # With the variations to try assembled, go through them one by one. We
+        # define an inner class here for undefined results because 'nil' can be
+        # a legitimate result from the wrapped method.
+        class Undefined; end
+        result = Undefined
         tries.each do |try|
           if receiver.keys.include?(try)
             result = wrapped_method.call(try, *args, &block)
@@ -100,7 +103,7 @@ module Collapsium
 
         # If any of the above yielded a result, great, return that. Otherwise
         # yield to the default implementation (i.e. wrapped_method).
-        if not result.nil?
+        if result != Undefined
           next result
         end
         next wrapped_method.call(key, *args, &block)
