@@ -287,12 +287,14 @@ describe ::Collapsium::PathedAccess do
       expect(tester[:foo][:bar]).to eql 42
       expect(tester['foo.baz']).to eql 'quux'
       expect(tester[:foo][:baz]).to eql 'quux'
+      expect(tester['foo'].length).to eql 2
 
       tester['foo.bar'] = 123
       expect(tester['foo.bar']).to eql 123
       expect(tester[:foo][:bar]).to eql 123
       expect(tester['foo.baz']).to eql 'quux'
       expect(tester[:foo][:baz]).to eql 'quux'
+      expect(tester['foo'].length).to eql 2
     end
 
     it "doesn't break #path_prefix" do

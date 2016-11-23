@@ -37,6 +37,28 @@ describe Collapsium::UberHash do
     expect(x[:foo]).to eql 42
   end
 
+  it "mixes pathed and indifferent access well" do
+    x = ::Collapsium::UberHash.new(
+        foo: {
+          bar: 42,
+          baz: 'quux',
+        }
+    )
+
+    expect(x['foo.bar']).to eql 42
+    expect(x[:foo][:bar]).to eql 42
+    expect(x['foo.baz']).to eql 'quux'
+    expect(x[:foo][:baz]).to eql 'quux'
+    expect(x['foo'].length).to eql 2
+
+    x['foo.bar'] = 123
+    expect(x['foo.bar']).to eql 123
+    expect(x[:foo][:bar]).to eql 123
+    expect(x['foo.baz']).to eql 'quux'
+    expect(x[:foo][:baz]).to eql 'quux'
+    expect(x['foo'].length).to eql 2
+  end
+
   it "can be initialized without arguments" do
     x = ::Collapsium::UberHash.new
     expect(x.empty?).to be_truthy
