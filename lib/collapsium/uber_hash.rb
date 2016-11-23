@@ -22,13 +22,21 @@ module Collapsium
 
   # A Hash that includes all the different Hash extensions in collapsium
   class UberHash < Hash
+    # ViralCapabilities first, just to ensure everything will get inherited.
     include ViralCapabilities
+
+    # Access methods next.
+    include IndifferentAccess
+    include PathedAccess
+
+    # Recursive functionality should be able to use access methods, so they
+    # come next.
     include RecursiveMerge
     include RecursiveDup
     include RecursiveSort
     include RecursiveFetch
-    include PathedAccess
-    include IndifferentAccess
+
+    # Lastly, miscellaneous extensions
     include PrototypeMatch
 
     include Support::HashMethods
