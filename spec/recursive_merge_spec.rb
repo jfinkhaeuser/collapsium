@@ -147,6 +147,27 @@ describe ::Collapsium::RecursiveMerge do
       expect(x[:arr].length).to eql 2
       expect(x[:arr]).to eql [2, 1]
     end
+
+    it "preserves key types, and prefers the first key's type" do
+      tester[:foo] = {
+        bar: 123,
+      }
+      tester[:arr] = [2]
+      other = {
+        "foo" => {
+          "baz asdf" => "quux",
+          "bar" => 42
+        },
+        "arr" => [1],
+        asdf: 42,
+      }
+      x = tester.recursive_merge(other, false)
+
+      expect(x.keys.length).to eql 3
+      expect(x.keys[0].is_a?(Symbol)).to be_truthy
+      expect(x.keys[1].is_a?(Symbol)).to be_truthy
+      expect(x.keys[2].is_a?(Symbol)).to be_truthy
+    end
   end
 
   context "with IndifferentAccess and PathedAccess" do
