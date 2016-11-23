@@ -273,7 +273,7 @@ describe ::Collapsium::PathedAccess do
       expect(res['bar']).to eql 42
     end
 
-    it "can write without overwriting" do
+    it "can write without duplication" do
       tester = {
         foo: {
           bar: 42,
@@ -292,6 +292,13 @@ describe ::Collapsium::PathedAccess do
       tester['foo.bar'] = 123
       expect(tester['foo.bar']).to eql 123
       expect(tester[:foo][:bar]).to eql 123
+      expect(tester['foo.baz']).to eql 'quux'
+      expect(tester[:foo][:baz]).to eql 'quux'
+      expect(tester['foo'].length).to eql 2
+
+      tester['foo.bar'] = nil
+      expect(tester['foo.bar']).to be_nil
+      expect(tester[:foo][:bar]).to be_nil
       expect(tester['foo.baz']).to eql 'quux'
       expect(tester[:foo][:baz]).to eql 'quux'
       expect(tester['foo'].length).to eql 2

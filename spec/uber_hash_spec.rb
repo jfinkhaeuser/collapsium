@@ -57,6 +57,13 @@ describe Collapsium::UberHash do
     expect(x['foo.baz']).to eql 'quux'
     expect(x[:foo][:baz]).to eql 'quux'
     expect(x['foo'].length).to eql 2
+
+    x['foo.bar'] = nil
+    expect(x['foo.bar']).to be_nil
+    expect(x[:foo][:bar]).to be_nil
+    expect(x['foo.baz']).to eql 'quux'
+    expect(x[:foo][:baz]).to eql 'quux'
+    expect(x['foo'].length).to eql 2
   end
 
   it "can be initialized without arguments" do
