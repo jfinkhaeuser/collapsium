@@ -35,9 +35,14 @@ module Collapsium
 
           # Object's constants contain all Module and Class definitions to date.
           # We need to get the constant values, though, not just their names.
+          # Note: the $VERBOSE mess is to silence deprecation warnings, which
+          #       occur on newer Ruby versions.
+          verbose = $VERBOSE
+          $VERBOSE = nil
           builtins = Object.constants.sort.map do |const_name|
             Object.const_get(const_name)
           end
+          $VERBOSE = verbose
 
           # If JSON was required, there will be some generator methods that
           # override the above generators. We want to filter those out as well.
