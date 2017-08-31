@@ -16,8 +16,8 @@ describe ::Collapsium::RecursiveSort do
 
     h.recursive_sort!
 
-    expect(h.keys).to eql %w(a b c)
-    expect(h['c'].keys).to eql %w(d e f)
+    expect(h.keys).to eql %w[a b c]
+    expect(h['c'].keys).to eql %w[d e f]
   end
 
   it "duplicates and sorts an outer hash (not deep)" do
@@ -35,12 +35,12 @@ describe ::Collapsium::RecursiveSort do
     h2 = h.recursive_sort
 
     # Only the new outer hash's keys are sorted
-    expect(h.keys).to eql %w(a c b)
-    expect(h2.keys).to eql %w(a b c)
+    expect(h.keys).to eql %w[a c b]
+    expect(h2.keys).to eql %w[a b c]
 
     # Both inner hashes are sorted because dup isn't deep
-    expect(h['c'].keys).to eql %w(d e f)
-    expect(h2['c'].keys).to eql %w(d e f)
+    expect(h['c'].keys).to eql %w[d e f]
+    expect(h2['c'].keys).to eql %w[d e f]
 
     # Similar with object IDs
     expect(h.object_id).not_to eql h2.object_id
@@ -64,12 +64,12 @@ describe ::Collapsium::RecursiveSort do
     h2 = h.recursive_sort
 
     # Only the new outer hash's keys are sorted
-    expect(h.keys).to eql %w(a c b)
-    expect(h2.keys).to eql %w(a b c)
+    expect(h.keys).to eql %w[a c b]
+    expect(h2.keys).to eql %w[a b c]
 
     # Only the new inner hash's keys are sorted
-    expect(h['c'].keys).to eql %w(d f e)
-    expect(h2['c'].keys).to eql %w(d e f)
+    expect(h['c'].keys).to eql %w[d f e]
+    expect(h2['c'].keys).to eql %w[d e f]
 
     # Similar with object IDs
     expect(h.object_id).not_to eql h2.object_id

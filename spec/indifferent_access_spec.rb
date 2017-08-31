@@ -66,7 +66,7 @@ describe ::Collapsium::IndifferentAccess do
       "foo", :foo,
       "42", :"42", 42,
     ]
-    expect(::Collapsium::IndifferentAccess.unique_keys(test)).to eql %w(foo 42)
+    expect(::Collapsium::IndifferentAccess.unique_keys(test)).to eql %w[foo 42]
   end
 
   it "can sort keys" do

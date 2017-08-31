@@ -20,25 +20,25 @@ module Collapsium
 
       # @api private
       # Read access methods with key parameter
-      KEYED_READ_METHODS = [
-        :[], :default, :fetch, :has_key?, :include?, :key?,
+      KEYED_READ_METHODS = %i[
+        [] default fetch has_key? include? key?
       ].freeze
 
       # @api private
       # All read access methods
-      READ_METHODS = KEYED_READ_METHODS + [
-        :dup,
+      READ_METHODS = KEYED_READ_METHODS + %i[
+        dup
       ].freeze
 
       # @api private
       # Write access methods with key parameter
-      KEYED_WRITE_METHODS = [
-        :[]=, :delete, :store,
+      KEYED_WRITE_METHODS = %i[
+        []= delete store
       ].freeze
 
       # All write access methods
-      WRITE_METHODS = KEYED_WRITE_METHODS + [
-        :merge, :merge!,
+      WRITE_METHODS = KEYED_WRITE_METHODS + %i[
+        merge merge!
       ].freeze
 
     end # module HashMethods

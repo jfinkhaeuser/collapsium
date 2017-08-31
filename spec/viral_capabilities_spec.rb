@@ -4,8 +4,7 @@ require_relative '../lib/collapsium/viral_capabilities'
 module TestModule
   extend ::Collapsium::ViralCapabilities
 
-  def find_me
-  end
+  def find_me; end
 end # TestModule
 
 class PrependedHash < Hash
@@ -27,22 +26,19 @@ end
 class DirectPrependedHash < Hash
   prepend ::Collapsium::ViralCapabilities
 
-  def find_me
-  end
+  def find_me; end
 end
 
 class DirectIncludedHash < Hash
   include ::Collapsium::ViralCapabilities
 
-  def find_me
-  end
+  def find_me; end
 end
 
 class DirectExtendedHash < Hash
   extend ::Collapsium::ViralCapabilities
 
-  def find_me
-  end
+  def find_me; end
 end
 
 class LoggingHash < Hash

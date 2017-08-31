@@ -20,25 +20,25 @@ module Collapsium
 
       # @api private
       # Read access methods with index parameter
-      INDEXED_READ_METHODS = [
-        :[], :at, :fetch, :include?,
+      INDEXED_READ_METHODS = %i[
+        [] at fetch include?
       ].freeze
 
       # @api private
       # All read access methods
-      READ_METHODS = INDEXED_READ_METHODS + [
-        :dup, :first, :last, :take, :drop,
+      READ_METHODS = INDEXED_READ_METHODS + %i[
+        dup first last take drop
       ].freeze
 
       # @api private
       # Write access methods with index parameter
-      INDEXED_WRITE_METHODS = [
-        :[]=, :insert, :compact,
+      INDEXED_WRITE_METHODS = %i[
+        []= insert compact
       ].freeze
 
       # All write access methods
-      WRITE_METHODS = INDEXED_WRITE_METHODS + [
-        :unshift, :pop, :shift,
+      WRITE_METHODS = INDEXED_WRITE_METHODS + %i[
+        unshift pop shift
       ].freeze
 
     end # module ArrayMethods

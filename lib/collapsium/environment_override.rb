@@ -142,7 +142,7 @@ module Collapsium
           env_keys = [key.to_s]
         end
         env_keys.map! { |k| key_to_env(k) }
-        env_keys.select! { |k| not k.empty? }
+        env_keys.reject!(&:empty?)
         env_keys.uniq!
 
         return env_keys

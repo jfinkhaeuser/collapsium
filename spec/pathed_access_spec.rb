@@ -18,7 +18,7 @@ describe ::Collapsium::PathedAccess do
 
   describe "Hash-like" do
     it "responds to Hash functions" do
-      [:invert, :delete, :fetch].each do |meth|
+      %i[invert delete fetch].each do |meth|
         expect(@tester.respond_to?(meth)).to eql true
       end
     end

@@ -26,7 +26,7 @@ module Collapsium
     #     not present in the prototype.
     # @return (Boolean) True if matching succeeds, false otherwise.
     def prototype_match(prototype, strict = false)
-      return prototype_match_score(prototype, strict) > 0
+      return prototype_match_score(prototype, strict).positive?
     end
 
     ##
@@ -42,7 +42,7 @@ module Collapsium
       # The prototype contains keys that are not in the Hash. That's a failure,
       # and the level of failure is the number of missing keys.
       missing = (prototype.keys - keys).length
-      if missing > 0
+      if missing.positive?
         return -missing
       end
 
@@ -50,7 +50,7 @@ module Collapsium
       # in the prototoype.
       if strict
         missing = (keys - prototype.keys).length
-        if missing > 0
+        if missing.positive?
           return -missing
         end
       end
@@ -74,7 +74,7 @@ module Collapsium
 
           self[key].extend(PrototypeMatch)
           recurse_score = self[key].prototype_match_score(value)
-          if recurse_score < 0
+          if recurse_score.negative?
             return recurse_score
           end
           score += recurse_score

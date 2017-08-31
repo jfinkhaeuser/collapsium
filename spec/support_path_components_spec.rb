@@ -33,25 +33,25 @@ describe ::Collapsium::Support::PathComponents do
 
   context "#path_components" do
     it "splits a path into components" do
-      expect(tester.path_components("foo.bar")).to eql %w(foo bar)
+      expect(tester.path_components("foo.bar")).to eql %w[foo bar]
     end
 
     it "strips empty components at the beginning" do
-      expect(tester.path_components("..foo.bar")).to eql %w(foo bar)
+      expect(tester.path_components("..foo.bar")).to eql %w[foo bar]
     end
 
     it "strips empty components at the end" do
-      expect(tester.path_components("foo.bar..")).to eql %w(foo bar)
+      expect(tester.path_components("foo.bar..")).to eql %w[foo bar]
     end
 
     it "strips empty components in the middle" do
-      expect(tester.path_components("foo...bar")).to eql %w(foo bar)
+      expect(tester.path_components("foo...bar")).to eql %w[foo bar]
     end
   end
 
   context "#join_path" do
     it "joins path components" do
-      expect(tester.join_path(%w(foo bar))).to eql "foo.bar"
+      expect(tester.join_path(%w[foo bar])).to eql "foo.bar"
     end
 
     it "joins empty components to an empty string" do
