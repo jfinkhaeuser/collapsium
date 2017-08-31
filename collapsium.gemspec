@@ -12,7 +12,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'collapsium/version'
 
 # rubocop:disable Style/UnneededPercentQ
-# rubocop:disable Style/SpaceAroundOperators
+# rubocop:disable Layout/SpaceAroundOperators
 Gem::Specification.new do |spec|
   spec.name          = "collapsium"
   spec.version       = Collapsium::VERSION
@@ -41,5 +41,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov", "~> 0.13"
   spec.add_development_dependency "yard", "~> 0.9"
 end
-# rubocop:enable Style/SpaceAroundOperators
+# rubocop:enable Layout/SpaceAroundOperators
 # rubocop:enable Style/UnneededPercentQ
