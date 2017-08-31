@@ -3,7 +3,7 @@
 # collapsium
 # https://github.com/jfinkhaeuser/collapsium
 #
-# Copyright (c) 2016 Jens Finkhaeuser and other collapsium contributors.
+# Copyright (c) 2016-2017 Jens Finkhaeuser and other collapsium contributors.
 # All rights reserved.
 #
 
