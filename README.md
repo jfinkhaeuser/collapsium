@@ -10,8 +10,6 @@ that is ActiveSupport...
 
 [![Gem Version](https://badge.fury.io/rb/collapsium.svg)](https://badge.fury.io/rb/collapsium)
 [![Build status](https://travis-ci.org/jfinkhaeuser/collapsium.svg?branch=master)](https://travis-ci.org/jfinkhaeuser/collapsium)
-[![Code Climate](https://codeclimate.com/github/jfinkhaeuser/collapsium/badges/gpa.svg)](https://codeclimate.com/github/jfinkhaeuser/collapsium)
-[![Test Coverage](https://codeclimate.com/github/jfinkhaeuser/collapsium/badges/coverage.svg)](https://codeclimate.com/github/jfinkhaeuser/collapsium/coverage)
 
 # Functionality
 
